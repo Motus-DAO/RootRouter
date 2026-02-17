@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import React from 'react';
 import './globals.css';
+import { GridScanBackground } from '../components/GridScanBackground';
 
 export const metadata: Metadata = {
   title: 'RootRouter Telemetry Dashboard',
@@ -24,13 +25,12 @@ export default function RootLayout({ children }: RootLayoutProps) {
       </head>
       <body
         style={{
-          backgroundColor: 'var(--color-bg)',
           color: 'var(--prism-text)',
           fontFamily: 'var(--font-body)',
           minHeight: '100vh',
         }}
       >
-        {children}
+        <GridScanBackground>{children}</GridScanBackground>
       </body>
     </html>
   );

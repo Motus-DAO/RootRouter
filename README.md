@@ -81,7 +81,19 @@ npx tsx demo/benchmark.ts
 npx tsx demo/swarm.ts
 ```
 
+To see **live telemetry from Celo**, use the dashboard (see [Dashboard](#dashboard) below).
+
+### Configuration
+
+- **Offline demos:** No API keys required; demos use a simulated LLM.
+- **Real LLM + Celo:** Copy `.env.example` to `.env` and set at least:
+  - `LLM_BASE_URL`, `LLM_API_KEY` (e.g. OpenAI or OpenRouter)
+  - `CELO_RPC_URL`, `CELO_PRIVATE_KEY`, `TELEMETRY_CONTRACT_ADDRESS`
+  For mainnet, use `CELO_RPC_URL_MAINNET`, `CELO_PRIVATE_KEY_MAINNET`, and `TELEMETRY_CONTRACT_ADDRESS_MAINNET`. Deployed mainnet contract: [`0x91aB56AbB4577B2B61Eed9A727cCb0D39896f0Ab`](https://explorer.celo.org/mainnet/address/0x91aB56AbB4577B2B61Eed9A727cCb0D39896f0Ab).
+
 ### Use in Your Agent
+
+Install from the repo (e.g. `npm install /path/to/RootRouter` or from GitHub), run `npm run build` in RootRouter to generate `dist/`, then in your bot:
 
 ```typescript
 import { RootRouter } from 'rootrouter';
@@ -89,6 +101,9 @@ import { RootRouter } from 'rootrouter';
 const router = new RootRouter({
   llmBaseUrl: 'https://openrouter.ai/api/v1',
   llmApiKey: process.env.OPENROUTER_KEY,
+  celoRpcUrl: process.env.CELO_RPC_URL,
+  celoPrivateKey: process.env.CELO_PRIVATE_KEY,
+  telemetryContractAddress: process.env.TELEMETRY_CONTRACT_ADDRESS,
 });
 
 // Wrap your existing chat calls
@@ -101,6 +116,16 @@ console.log(result.response);
 console.log(`Saved ${result.telemetry.tokensSaved} tokens ($${result.telemetry.costSaved.toFixed(4)})`);
 console.log(`Chamber: ${result.telemetry.chamberUsed}, Model: ${result.telemetry.modelUsed}`);
 ```
+
+### Dashboard
+
+Run the Next.js dashboard to view on-chain telemetry:
+
+```bash
+npm run dashboard
+```
+
+Open [http://localhost:3000](http://localhost:3000), enter the **agent address** (wallet that sends telemetry, e.g. your deployer address), and click **Load from Celo** to fetch stats and recent entries from the contract.
 
 ## Architecture
 
@@ -212,6 +237,10 @@ src/
 ├── celo/                 # On-chain telemetry + ERC-8004
 ├── rootRouter.ts         # Main orchestrator
 └── index.ts              # Public API
+app/                      # Next.js dashboard (live Celo telemetry)
+├── layout.tsx
+├── page.tsx
+└── globals.css
 demo/
 ├── basic.ts              # 40 interactions, single agent
 ├── swarm.ts              # Multi-agent swarm coordination
@@ -220,12 +249,14 @@ contracts/
 └── RootRouterTelemetry.sol  # On-chain telemetry contract
 ```
 
+Run `npm run build` to produce `dist/` for the library; required when installing RootRouter as a dependency in another project.
+
 ## Roadmap
 
 | Phase | What |
 |-------|------|
-| **1. Open Source** | Core library, demos, Celo integration |
-| **2. Dashboard** | Hosted visualization of chamber maps and agent topology |
+| **1. Open Source** | Core library, demos, Celo integration ✅ |
+| **2. Dashboard** | Next.js app for live on-chain telemetry (chambers, model routing, recent entries) ✅ |
 | **3. Router-as-a-Service** | Drop-in replacement for OpenRouter with algebraic routing |
 | **4. Enterprise** | Root system analytics for any paired data streams |
 

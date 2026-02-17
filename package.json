@@ -27,15 +27,18 @@
     "dotenv": "^16.4.0",
     "ethers": "^6.13.0",
     "next": "^16.1.6",
+    "postprocessing": "^6.38.2",
     "react": "^19.2.4",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.4",
+    "three": "^0.182.0",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.182.0",
     "@types/uuid": "^9.0.0",
     "solc": "^0.8.33",
     "tsx": "^4.7.0",

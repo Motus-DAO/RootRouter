@@ -31,13 +31,22 @@
   box-sizing: border-box;
 }
 
+html {
+  /* Base behind body so transparent body blends to a lighter dark */
+  background-color: #0f1729;
+}
+
 html,
 body {
-  background-color: var(--color-bg);
   color: var(--prism-text);
   font-family: var(--font-body);
   min-height: 100vh;
   line-height: 1.5;
+}
+
+body {
+  /* Semi-transparent so grid background feels lighter and less solid black */
+  background-color: rgba(11, 16, 26, 0.72);
 }
 
 /* Crystal glass / Prism UI */
