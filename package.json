@@ -23,6 +23,7 @@
   "author": "Gerry Alvarez <gerry@motusdao.org>",
   "license": "MIT",
   "dependencies": {
+    "convex": "^1.31.0",
     "chart.js": "^4.5.1",
     "dotenv": "^16.4.0",
     "ethers": "^6.13.0",

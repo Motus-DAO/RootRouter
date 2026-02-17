@@ -413,6 +413,36 @@ export class RootRouter {
     });
   }
 
+  /**
+   * Build a serializable snapshot for Convex/dashboard (chambers, agent graph, vector space summary).
+   * Use after a demo run to push topology data for visualization.
+   */
+  getSnapshotForExport(runId: string, agentId: string): {
+    runId: string;
+    agentId: string;
+    snapshot: {
+      summary: import('./types').TelemetrySummary;
+      agentGraph: ReturnType<AgentTopologyGraph['exportForSnapshot']>;
+      rootDirections: import('./types').RootDirection[];
+      vectorSpaceSummary: ReturnType<StructuredVectorSpace['getSummary']>;
+    };
+  } {
+    const summary = this.getTelemetry();
+    const agentGraph = this.agentGraph.exportForSnapshot();
+    const rootDirections = this.vectorSpace.getRootDirections();
+    const vectorSpaceSummary = this.vectorSpace.getSummary();
+    return {
+      runId,
+      agentId,
+      snapshot: {
+        summary,
+        agentGraph,
+        rootDirections,
+        vectorSpaceSummary,
+      },
+    };
+  }
+
   importState(json: string): void {
     const data = JSON.parse(json);
     if (data.history) this.collector.import(data.history);

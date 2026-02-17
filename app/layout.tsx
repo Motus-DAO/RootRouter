@@ -3,6 +3,7 @@ import React from 'react';
 import './globals.css';
 import { GridScanBackground } from '../components/GridScanBackground';
 import AppNav from '../components/AppNav';
+import ConvexClientProvider from '../components/ConvexClientProvider';
 
 export const metadata: Metadata = {
   title: { default: 'RootRouter', template: '%s — RootRouter' },
@@ -32,8 +33,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
         }}
       >
         <GridScanBackground>
-          <AppNav />
-          {children}
+          <ConvexClientProvider>
+            <AppNav />
+            {children}
+          </ConvexClientProvider>
         </GridScanBackground>
       </body>
     </html>

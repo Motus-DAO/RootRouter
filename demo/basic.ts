@@ -258,6 +258,30 @@ async function main() {
     console.log(`  ${c.dim}Celo telemetry TX: ${txHash}${c.reset}`);
     console.log('');
   }
+
+  // Push snapshot to dashboard (Convex) when DASHBOARD_URL is set (e.g. http://localhost:3000)
+  const dashboardUrl = process.env.DASHBOARD_URL?.replace(/\/$/, '');
+  if (dashboardUrl) {
+    try {
+      const runId = `basic-${Date.now()}`;
+      const payload = router.getSnapshotForExport(runId, 'demo-agent');
+      const res = await fetch(`${dashboardUrl}/api/snapshots`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { id?: string };
+        console.log(`  ${c.dim}Snapshot sent to dashboard (Convex). View at ${dashboardUrl}/dashboard/topology${c.reset}`);
+        console.log('');
+      } else {
+        const err = await res.text();
+        console.log(`  ${c.dim}Snapshot upload failed: ${res.status} ${err}${c.reset}`);
+      }
+    } catch (e) {
+      console.log(`  ${c.dim}Snapshot upload error: ${e instanceof Error ? e.message : String(e)}${c.reset}`);
+    }
+  }
 }
 
 main().catch(console.error);

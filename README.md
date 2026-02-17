@@ -93,6 +93,12 @@ To see **live telemetry from Celo**, use the dashboard (see [Dashboard](#dashboa
 
 **Lighter / cheaper runs:** Set `DEMO_QUICK=true` to reduce interactions (basic: 15, benchmark: 15, swarm: 21). Use a single cheap model for all tiers (e.g. `MODEL_FAST=gpt-4o-mini`, `MODEL_BALANCED=gpt-4o-mini`, `MODEL_POWERFUL=gpt-4o-mini`) to keep real-LLM tests affordable.
 
+**Using both xAI and OpenAI:** RootRouter uses a single LLM endpoint (e.g. OpenRouter). To route easy tasks to xAI and hard tasks to OpenAI, set OpenRouter as `LLM_BASE_URL` and pick models per tier in `.env`, for example:
+- `MODEL_FAST=x-ai/grok-3-mini` (or another fast xAI model)
+- `MODEL_BALANCED=openai/gpt-4o-mini`
+- `MODEL_POWERFUL=openai/gpt-4o`
+OpenRouter’s single API key will proxy to both providers; RootRouter then selects the tier (and thus the model) by chamber difficulty.
+
 ### Use in Your Agent
 
 Install from the repo (e.g. `npm install /path/to/RootRouter` or from GitHub), run `npm run build` in RootRouter to generate `dist/`, then in your bot:
@@ -128,6 +134,12 @@ npm run dashboard
 ```
 
 Open [http://localhost:3000](http://localhost:3000), enter the **agent address** (wallet that sends telemetry, e.g. your deployer address), and click **Load from Celo** to fetch stats and recent entries from the contract.
+
+**Convex (optional backend):** The dashboard uses [Convex](https://convex.dev) to store run snapshots for the **Topology** view (chambers, agent graph, vector space). To enable it:
+
+1. Run `npx convex dev` once — log in if prompted, then it will create `.env.local` with `NEXT_PUBLIC_CONVEX_URL` and generate the Convex backend.
+2. Restart the dashboard (`npm run dashboard`). Open **Topology** in the nav to see run snapshots.
+3. To push a snapshot from a demo: set `DASHBOARD_URL=http://localhost:3000` in `.env`, start the dashboard, then run e.g. `npm run demo:basic`. The script will POST the run state to the dashboard; refresh the Topology page to see it.
 
 ## Architecture
 

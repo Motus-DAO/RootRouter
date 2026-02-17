@@ -121,4 +121,34 @@ export class AgentTopologyGraph {
       avgSpecialization: this.agents.size > 0 ? totalSpecializations / this.agents.size : 0,
     };
   }
+
+  /** Serializable export for dashboard/Convex (nodes + edges as plain arrays). */
+  exportForSnapshot(): {
+    nodes: Array<{ agentId: string; totalInteractions: number; avgRootNorm: number; chamberSpecialization: Record<number, number> }>;
+    edges: Array<{ sourceAgentId: string; targetAgentId: string; delegationCount: number; avgDelegationSuccess: number; chamberFlow: Record<number, number> }>;
+  } {
+    const nodes = Array.from(this.agents.values()).map((a) => ({
+      agentId: a.agentId,
+      totalInteractions: a.totalInteractions,
+      avgRootNorm: a.avgRootNorm,
+      chamberSpecialization: { ...a.chamberSpecialization },
+    }));
+    const edgeSet = new Set<string>();
+    const edges: Array<{ sourceAgentId: string; targetAgentId: string; delegationCount: number; avgDelegationSuccess: number; chamberFlow: Record<number, number> }> = [];
+    for (const agent of this.agents.values()) {
+      for (const edge of agent.edges.values()) {
+        const key = [edge.sourceAgentId, edge.targetAgentId].sort().join('|');
+        if (edgeSet.has(key)) continue;
+        edgeSet.add(key);
+        edges.push({
+          sourceAgentId: edge.sourceAgentId,
+          targetAgentId: edge.targetAgentId,
+          delegationCount: edge.delegationCount,
+          avgDelegationSuccess: edge.avgDelegationSuccess,
+          chamberFlow: { ...edge.chamberFlow },
+        });
+      }
+    }
+    return { nodes, edges };
+  }
 }
