@@ -1,0 +1,99 @@
+/* Prism / Holo theme (from Prism-protocol demo) */
+:root {
+  --color-bg: #0B101A;
+  --color-primary: #00E5FF;
+  --color-accent: #E144FF;
+  --color-secondary: #9D68FF;
+  --electric-cyan: #00FFFF;
+  --vibrant-magenta: #FF00FF;
+  --noir: #0a0a0a;
+  --concrete: #1a1a1a;
+  --steel: #2a2a2a;
+  --ghost: #f0f0f0;
+  --prism-cyan: #00ffcc;
+  --prism-violet: #9d4edd;
+  --prism-amber: #ffb703;
+  --warning-red: #ff006e;
+  --font-display: 'JetBrains Mono', ui-monospace, monospace;
+  --font-body: 'Crimson Pro', Georgia, serif;
+  --font-mono: 'Space Mono', ui-monospace, monospace;
+  --prism-text: #ffffff;
+  --prism-text-muted: rgba(255, 255, 255, 0.7);
+  --prism-text-dim: rgba(255, 255, 255, 0.5);
+  --prism-border: rgba(0, 255, 204, 0.2);
+  --prism-radius: 12px;
+  --prism-radius-sm: 8px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background-color: var(--color-bg);
+  color: var(--prism-text);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* Crystal glass / Prism UI */
+.crystal-glass {
+  background: rgba(10, 10, 20, 0.5);
+  border: 1px solid var(--prism-border);
+  border-radius: var(--prism-radius-sm);
+  backdrop-filter: blur(8px);
+}
+
+.crystal-glass-prism {
+  background: linear-gradient(135deg, rgba(0, 255, 204, 0.06) 0%, transparent 50%),
+    linear-gradient(45deg, rgba(157, 78, 221, 0.06) 0%, transparent 50%),
+    rgba(26, 26, 36, 0.6);
+  border: 1px solid rgba(0, 255, 204, 0.2);
+  border-radius: var(--prism-radius);
+  backdrop-filter: blur(8px);
+}
+
+.holo-card-prism {
+  position: relative;
+  background: linear-gradient(135deg, rgba(0, 255, 204, 0.06) 0%, transparent 50%),
+    linear-gradient(45deg, rgba(157, 78, 221, 0.06) 0%, transparent 50%),
+    rgba(26, 26, 36, 0.6);
+  border: 1px solid rgba(0, 255, 204, 0.2);
+  border-radius: var(--prism-radius);
+  overflow: hidden;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.holo-card-prism:hover {
+  border-color: rgba(0, 255, 204, 0.4);
+  box-shadow: 0 0 24px rgba(0, 255, 204, 0.15);
+}
+
+.holo-card-prism::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(0, 255, 204, 0.04) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(0, 255, 204, 0.04) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+}
+
+.holo-badge {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(157, 78, 221, 0.4);
+  background: linear-gradient(135deg, rgba(157, 78, 221, 0.12) 0%, rgba(0, 255, 204, 0.06) 100%);
+  color: var(--prism-cyan);
+  box-shadow: 0 0 16px rgba(157, 78, 221, 0.2);
+}
