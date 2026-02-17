@@ -2,10 +2,11 @@ import type { Metadata } from 'next';
 import React from 'react';
 import './globals.css';
 import { GridScanBackground } from '../components/GridScanBackground';
+import AppNav from '../components/AppNav';
 
 export const metadata: Metadata = {
-  title: 'RootRouter Telemetry Dashboard',
-  description: 'Telemetry dashboard for RootRouter on Celo',
+  title: { default: 'RootRouter', template: '%s — RootRouter' },
+  description: 'Algebraic Agent Infrastructure for AI Swarms. Telemetry and dashboard on Celo.',
 };
 
 type RootLayoutProps = {
@@ -30,7 +31,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
           minHeight: '100vh',
         }}
       >
-        <GridScanBackground>{children}</GridScanBackground>
+        <GridScanBackground>
+          <AppNav />
+          {children}
+        </GridScanBackground>
       </body>
     </html>
   );

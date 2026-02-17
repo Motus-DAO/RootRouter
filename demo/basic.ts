@@ -116,10 +116,13 @@ function bar(count: number, max: number, width: number = 10): string {
 }
 
 async function main() {
+  const rounds = process.env.DEMO_QUICK === 'true' ? 3 : 8;
+  const totalInteractions = rounds * QUERIES.length;
+
   console.log('');
   console.log(`${c.bold}${c.cyan}\u250c${'─'.repeat(62)}\u2510${c.reset}`);
   console.log(`${c.bold}${c.cyan}\u2502${c.reset}${c.bold}     \u{1f33f} ROOTROUTER \u2014 Algebraic Agent Infrastructure          ${c.cyan}\u2502${c.reset}`);
-  console.log(`${c.bold}${c.cyan}\u2502${c.reset}        Single Agent Demo \u2022 40 Interactions                 ${c.cyan}\u2502${c.reset}`);
+  console.log(`${c.bold}${c.cyan}\u2502${c.reset}        Single Agent Demo \u2022 ${totalInteractions} Interactions${rounds < 8 ? ' (quick)' : ''}                 ${c.cyan}\u2502${c.reset}`);
   console.log(`${c.bold}${c.cyan}\u2514${'─'.repeat(62)}\u2518${c.reset}`);
   console.log('');
   console.log(`  ${c.dim}Embeddings:${c.reset} TF-IDF (local, no API key needed)`);
@@ -139,7 +142,7 @@ async function main() {
 
   // Flatten queries interleaved across categories
   const allQueries: { category: string; query: string }[] = [];
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < rounds; i++) {
     for (const cat of QUERIES) {
       allQueries.push({ category: cat.category, query: cat.queries[i] });
     }

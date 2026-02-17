@@ -91,6 +91,8 @@ To see **live telemetry from Celo**, use the dashboard (see [Dashboard](#dashboa
   - `CELO_RPC_URL`, `CELO_PRIVATE_KEY`, `TELEMETRY_CONTRACT_ADDRESS`
   For mainnet, use `CELO_RPC_URL_MAINNET`, `CELO_PRIVATE_KEY_MAINNET`, and `TELEMETRY_CONTRACT_ADDRESS_MAINNET`. Deployed mainnet contract: [`0x91aB56AbB4577B2B61Eed9A727cCb0D39896f0Ab`](https://explorer.celo.org/mainnet/address/0x91aB56AbB4577B2B61Eed9A727cCb0D39896f0Ab).
 
+**Lighter / cheaper runs:** Set `DEMO_QUICK=true` to reduce interactions (basic: 15, benchmark: 15, swarm: 21). Use a single cheap model for all tiers (e.g. `MODEL_FAST=gpt-4o-mini`, `MODEL_BALANCED=gpt-4o-mini`, `MODEL_POWERFUL=gpt-4o-mini`) to keep real-LLM tests affordable.
+
 ### Use in Your Agent
 
 Install from the repo (e.g. `npm install /path/to/RootRouter` or from GitHub), run `npm run build` in RootRouter to generate `dist/`, then in your bot:

@@ -157,15 +157,19 @@ async function main() {
     pcaDimensions: 5,
   });
 
+  const warmupRounds = process.env.DEMO_QUICK === 'true' ? 5 : 15;
+  const complexTaskCount = process.env.DEMO_QUICK === 'true' ? 2 : COMPLEX_TASKS.length;
+  const isQuick = warmupRounds < 15;
+
   // Phase 1: Warm-up
-  console.log(`  ${c.bold}\u2500\u2500\u2500 Phase 1: Agent Warm-up (45 interactions) \u2500\u2500\u2500${c.reset}`);
+  console.log(`  ${c.bold}\u2500\u2500\u2500 Phase 1: Agent Warm-up (${warmupRounds * 3} interactions)${isQuick ? ' (quick)' : ''} \u2500\u2500\u2500${c.reset}`);
   console.log('');
 
   const agents = ['planner', 'coder', 'researcher'];
   let count = 0;
   let fittedAt = -1;
 
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < warmupRounds; i++) {
     for (const agent of agents) {
       count++;
       const query = AGENT_QUERIES[agent][i];
@@ -209,7 +213,7 @@ async function main() {
   console.log(`  ${c.bold}\u2500\u2500\u2500 Phase 2: Complex Multi-Agent Tasks \u2500\u2500\u2500${c.reset}`);
   console.log('');
 
-  for (let t = 0; t < COMPLEX_TASKS.length; t++) {
+  for (let t = 0; t < complexTaskCount; t++) {
     const task = COMPLEX_TASKS[t];
     console.log(`  ${c.bold}Task ${t + 1}: ${task.name}${c.reset}`);
 

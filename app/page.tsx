@@ -1,235 +1,242 @@
-'use client';
+import Link from 'next/link';
 
-import React, { useState } from 'react';
-import OverviewCard from '../components/OverviewCard';
-import TokensOverTimeChart from '../components/TokensOverTimeChart';
-import ChamberDistribution from '../components/ChamberDistribution';
-import ModelRoutingChart from '../components/ModelRoutingChart';
-import RecentEntriesTable from '../components/RecentEntriesTable';
-import { useCeloTelemetry } from '../hooks/useCeloTelemetry';
-
-const DEFAULT_AGENT = '0x64608C2d5E4685830348e9155bAB423bf905E9c9';
-
-type ControlsBarProps = {
-  agentInput: string;
-  setAgentInput: (v: string) => void;
-  onLoad: () => void;
-  onRefresh: () => void;
-  loading: boolean;
-  statusMessage: string;
+export const metadata = {
+  title: 'RootRouter — Algebraic Agent Infrastructure',
+  description:
+    'Cut your agent\'s LLM costs 40–70% with root-pair telemetry, interaction graphs, and symmetry-aware context filtering. Verifiable on-chain analytics on Celo.',
 };
 
-function ControlsBar({
-  agentInput,
-  setAgentInput,
-  onLoad,
-  onRefresh,
-  loading,
-  statusMessage,
-}: ControlsBarProps) {
+export default function HomePage() {
   return (
-    <div
-      className="crystal-glass-prism"
-      style={{
-        padding: '1rem 1.5rem',
-        borderRadius: 'var(--prism-radius)',
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '0.75rem',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '1.5rem',
-      }}
-    >
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
-        <label style={{ fontSize: '0.9rem', color: 'var(--prism-text-muted)' }}>
-          Agent address
-          <input
-            type="text"
-            value={agentInput}
-            onChange={(e) => setAgentInput(e.target.value)}
-            placeholder="0x..."
-            style={{
-              marginLeft: '0.5rem',
-              padding: '0.45rem 0.75rem',
-              minWidth: '260px',
-              borderRadius: 'var(--prism-radius-sm)',
-              border: '1px solid var(--prism-border)',
-              background: 'rgba(0,0,0,0.4)',
-              color: 'var(--prism-text)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.8rem',
-            }}
-          />
-        </label>
-      </div>
-      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-        <button
-          type="button"
-          onClick={onLoad}
-          disabled={loading}
-          style={{
-            padding: '0.5rem 0.9rem',
-            borderRadius: '999px',
-            border: '1px solid rgba(0, 255, 255, 0.4)',
-            background: 'linear-gradient(to right, rgba(0, 229, 255, 0.25), rgba(225, 68, 255, 0.2))',
-            color: '#fff',
-            fontSize: '0.85rem',
-            fontFamily: 'var(--font-display)',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.6 : 1,
-          }}
-        >
-          Load from Celo
-        </button>
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={loading}
-          className="holo-badge"
-          style={{
-            padding: '0.5rem 0.9rem',
-            borderRadius: 'var(--prism-radius-sm)',
-            border: '1px solid var(--prism-border)',
-            background: 'rgba(0, 255, 204, 0.06)',
-            color: 'var(--prism-text)',
-            fontSize: '0.85rem',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.6 : 1,
-          }}
-        >
-          Refresh
-        </button>
-        <span
-          style={{
-            fontSize: '0.8rem',
-            fontFamily: 'var(--font-mono)',
-            color: 'var(--prism-text-muted)',
-          }}
-        >
-          {statusMessage}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function DashboardShell({ children }: { children: React.ReactNode }) {
-  return (
-    <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.25rem 3rem' }}>
+    <main style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem 1.25rem 4rem' }}>
+      {/* Hero */}
       <header
         style={{
-          marginBottom: '1.5rem',
-          paddingBottom: '1.25rem',
+          textAlign: 'center',
+          marginBottom: '3rem',
+          paddingBottom: '2rem',
           borderBottom: '1px solid var(--prism-border)',
         }}
       >
         <h1
           style={{
             fontFamily: 'var(--font-display)',
-            fontSize: '1.5rem',
+            fontSize: 'clamp(1.75rem, 4vw, 2.25rem)',
             fontWeight: 600,
             color: 'var(--prism-cyan)',
             letterSpacing: '-0.02em',
-            marginBottom: '0.25rem',
+            marginBottom: '0.5rem',
           }}
         >
-          RootRouter Dashboard
+          🌿 RootRouter
         </h1>
-        <p style={{ fontSize: '0.875rem', color: 'var(--prism-text-muted)' }}>
-          Algebraic Agent Infrastructure — Live telemetry from Celo mainnet
+        <p
+          style={{
+            fontSize: '1.125rem',
+            color: 'var(--prism-text-muted)',
+            marginBottom: '0.5rem',
+          }}
+        >
+          Algebraic Agent Infrastructure for AI Swarms
         </p>
+        <p style={{ fontSize: '0.95rem', color: 'var(--prism-text-dim)' }}>
+          Cut your agent&apos;s LLM costs 40–70% with root-pair telemetry, interaction graphs, and
+          symmetry-aware context filtering. Verifiable on-chain analytics on Celo · ERC-8004
+          compatible.
+        </p>
+        <Link
+          href="/dashboard"
+          style={{
+            display: 'inline-block',
+            marginTop: '1.25rem',
+            padding: '0.6rem 1.25rem',
+            borderRadius: '999px',
+            border: '1px solid rgba(0, 255, 255, 0.4)',
+            background: 'linear-gradient(to right, rgba(0, 229, 255, 0.25), rgba(225, 68, 255, 0.2))',
+            color: '#fff',
+            fontSize: '0.9rem',
+            fontFamily: 'var(--font-display)',
+            textDecoration: 'none',
+          }}
+        >
+          Open Dashboard →
+        </Link>
       </header>
-      {children}
+
+      {/* Problem */}
+      <section style={{ marginBottom: '2.5rem' }}>
+        <h2
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '1.15rem',
+            color: 'var(--prism-cyan)',
+            marginBottom: '0.75rem',
+          }}
+        >
+          The Problem
+        </h2>
+        <p style={{ color: 'var(--prism-text-muted)', fontSize: '0.95rem', lineHeight: 1.65 }}>
+          AI agents are expensive. Every autonomous agent burns tokens sending{' '}
+          <strong style={{ color: 'var(--prism-text)' }}>full conversation history</strong> on every
+          LLM call. A typical session accumulates 50K+ tokens of context, but most of it is irrelevant
+          to the current query. OpenRouter routes between models but doesn&apos;t optimize what gets
+          sent. The result: agents waste 40–70% of their token budget, use expensive models for
+          simple tasks, and have no way to verify their decision-making on-chain.
+        </p>
+      </section>
+
+      {/* Solution — 3 pillars */}
+      <section style={{ marginBottom: '2.5rem' }}>
+        <h2
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '1.15rem',
+            color: 'var(--prism-cyan)',
+            marginBottom: '1rem',
+          }}
+        >
+          The Solution
+        </h2>
+        <p style={{ color: 'var(--prism-text-muted)', fontSize: '0.95rem', marginBottom: '1.25rem' }}>
+          RootRouter is middleware between your agents and their LLM providers. It does three things:
+        </p>
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+          {[
+            {
+              title: 'Root-Pair Telemetry',
+              desc: 'Every interaction produces a root pair: the gap between intent (query embedding) and execution (response embedding). The root vector measures how well the agent fulfilled the request. Collect enough and geometric structure emerges — preferred directions, regions, and algebraic symmetry.',
+            },
+            {
+              title: 'Algebraic Context Filtering',
+              desc: 'PCA finds root directions (principal axes). These define chambers — regions where the agent performs similarly. Context retrieval uses chamber retrieval, graph retrieval, and reflection retrieval. This replaces "send everything" with "send exactly what\'s relevant."',
+            },
+            {
+              title: 'Intelligent Model Routing',
+              desc: 'Each chamber has a historical difficulty score. Easy chambers → fast cheap models. Hard chambers → powerful models. For swarms, the agent topology graph routes tasks to the specialist. All telemetry is logged on Celo for verifiable, auditable infrastructure.',
+            },
+          ].map((item, i) => (
+            <li
+              key={i}
+              className="holo-card-prism"
+              style={{
+                padding: '1rem 1.25rem',
+                marginBottom: '0.75rem',
+                position: 'relative',
+                zIndex: 1,
+              }}
+            >
+              <h3
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '0.95rem',
+                  color: 'var(--prism-violet)',
+                  marginBottom: '0.4rem',
+                }}
+              >
+                {item.title}
+              </h3>
+              <p style={{ color: 'var(--prism-text-muted)', fontSize: '0.875rem', lineHeight: 1.6 }}>
+                {item.desc}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* Results */}
+      <section style={{ marginBottom: '2.5rem' }}>
+        <h2
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '1.15rem',
+            color: 'var(--prism-cyan)',
+            marginBottom: '0.75rem',
+          }}
+        >
+          Results
+        </h2>
+        <div
+          className="crystal-glass-prism"
+          style={{
+            padding: '1rem 1.25rem',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.8rem',
+            overflowX: 'auto',
+            position: 'relative',
+            zIndex: 1,
+          }}
+        >
+          <pre style={{ margin: 0, color: 'var(--prism-text-muted)' }}>
+            {` Metric              Baseline         RootRouter       Savings
+ ─────────────────────────────────────────────────────────────
+ Total Cost           ~$1.00           ~$0.51           ~49%
+ Context Tokens       27,245           filtered         36,317 saved
+ Quality (norm)       1.3043           1.3043           ~same
+ Active Chambers      —                ~19              auto-discovered
+ Root Directions      —                5                ~50% variance
+ Graph Edges          —                ~81              ~4.0 avg degree`}
+          </pre>
+        </div>
+        <p style={{ fontSize: '0.8rem', color: 'var(--prism-text-dim)', marginTop: '0.5rem' }}>
+          Run <code style={{ padding: '0.1rem 0.3rem', background: 'rgba(0,0,0,0.3)', borderRadius: 4 }}>npx tsx demo/benchmark.ts</code> to
+          reproduce. Numbers from 50-query benchmark.
+        </p>
+      </section>
+
+      {/* Quick start */}
+      <section style={{ marginBottom: '2.5rem' }}>
+        <h2
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '1.15rem',
+            color: 'var(--prism-cyan)',
+            marginBottom: '0.75rem',
+          }}
+        >
+          Quick Start
+        </h2>
+        <ul style={{ color: 'var(--prism-text-muted)', fontSize: '0.9rem', lineHeight: 1.8, paddingLeft: '1.25rem' }}>
+          <li>
+            <strong style={{ color: 'var(--prism-text)' }}>Demos (offline):</strong>{' '}
+            <code style={{ padding: '0.1rem 0.3rem', background: 'rgba(0,0,0,0.3)', borderRadius: 4 }}>npx tsx demo/basic.ts</code>,{' '}
+            <code style={{ padding: '0.1rem 0.3rem', background: 'rgba(0,0,0,0.3)', borderRadius: 4 }}>demo/benchmark.ts</code>,{' '}
+            <code style={{ padding: '0.1rem 0.3rem', background: 'rgba(0,0,0,0.3)', borderRadius: 4 }}>demo/swarm.ts</code> — no API keys required.
+          </li>
+          <li>
+            <strong style={{ color: 'var(--prism-text)' }}>Live telemetry:</strong> Open the{' '}
+            <Link href="/dashboard" style={{ color: 'var(--prism-cyan)' }}>Dashboard</Link>, enter an agent address (e.g. your deployer), and click Load from Celo.
+          </li>
+          <li>
+            <strong style={{ color: 'var(--prism-text)' }}>Use in your agent:</strong> Install the library, configure <code style={{ padding: '0.1rem 0.3rem', background: 'rgba(0,0,0,0.3)', borderRadius: 4 }}>.env</code> (LLM + Celo), then wrap your chat calls with <code style={{ padding: '0.1rem 0.3rem', background: 'rgba(0,0,0,0.3)', borderRadius: 4 }}>router.chat()</code>.
+          </li>
+        </ul>
+      </section>
+
+      {/* CTA */}
+      <section
+        style={{
+          textAlign: 'center',
+          padding: '2rem',
+          borderTop: '1px solid var(--prism-border)',
+        }}
+      >
+        <Link
+          href="/dashboard"
+          style={{
+            display: 'inline-block',
+            padding: '0.6rem 1.25rem',
+            borderRadius: '999px',
+            border: '1px solid rgba(0, 255, 255, 0.4)',
+            background: 'rgba(0, 255, 204, 0.08)',
+            color: 'var(--prism-cyan)',
+            fontSize: '0.9rem',
+            fontFamily: 'var(--font-display)',
+            textDecoration: 'none',
+          }}
+        >
+          View telemetry on Dashboard →
+        </Link>
+      </section>
     </main>
-  );
-}
-
-export default function Page() {
-  const [agentAddress, setAgentAddress] = useState(DEFAULT_AGENT);
-  const [agentInput, setAgentInput] = useState(DEFAULT_AGENT);
-  const { loading, error, stats, entries, reload, lastLoadedCount } = useCeloTelemetry(agentAddress);
-
-  const handleLoad = () => {
-    const trimmed = agentInput.trim();
-    if (trimmed) setAgentAddress(trimmed);
-  };
-
-  const statusMessage = (() => {
-    if (!agentAddress) return 'Set an agent address and click Load from Celo.';
-    if (loading) return `Loading from Celo for ${agentAddress}…`;
-    if (error) return `Error: ${error}`;
-    if (!stats && entries.length === 0) return 'No telemetry yet for this agent.';
-    return `Loaded ${lastLoadedCount} entries for ${agentAddress}.`;
-  })();
-
-  const totalInteractions = stats?.interactions ?? 0;
-  const totalTokensSaved = stats?.tokensSaved ?? 0;
-  const avgTokensPerInteraction = totalInteractions > 0 ? totalTokensSaved / totalInteractions : 0;
-
-  return (
-    <DashboardShell>
-      <ControlsBar
-        agentInput={agentInput}
-        setAgentInput={setAgentInput}
-        onLoad={handleLoad}
-        onRefresh={() => void reload()}
-        loading={loading}
-        statusMessage={statusMessage}
-      />
-
-      <section
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '1rem',
-          marginBottom: '1.75rem',
-        }}
-      >
-        <OverviewCard
-          title="Total Interactions"
-          value={totalInteractions.toLocaleString()}
-          subtitle="All-time calls traced"
-        />
-        <OverviewCard
-          title="Tokens Saved"
-          value={totalTokensSaved.toLocaleString()}
-          subtitle="Across all routed requests"
-        />
-        <OverviewCard
-          title="Avg tokens / interaction"
-          value={avgTokensPerInteraction.toFixed(2)}
-          subtitle="Efficiency of routing"
-        />
-        <OverviewCard
-          title="Recent entries"
-          value={entries.length.toString()}
-          subtitle="Window shown in charts"
-        />
-      </section>
-
-      <section
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 2.2fr) minmax(0, 1.4fr)',
-          gap: '1.5rem',
-          marginBottom: '1.75rem',
-        }}
-      >
-        <TokensOverTimeChart entries={entries} />
-        <ModelRoutingChart entries={entries} />
-      </section>
-
-      <section
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1.7fr)',
-          gap: '1.5rem',
-        }}
-      >
-        <ChamberDistribution entries={entries} />
-        <RecentEntriesTable entries={entries} />
-      </section>
-    </DashboardShell>
   );
 }

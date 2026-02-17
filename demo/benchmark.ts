@@ -83,10 +83,13 @@ function bar(n: number, max: number, w: number = 10): string {
 }
 
 async function main() {
+  const queries = process.env.DEMO_QUICK === 'true' ? BENCHMARK_QUERIES.slice(0, 15) : BENCHMARK_QUERIES;
+  const isQuick = queries.length < BENCHMARK_QUERIES.length;
+
   console.log('');
   console.log(`${c.bold}${c.cyan}\u250c${'─'.repeat(62)}\u2510${c.reset}`);
   console.log(`${c.bold}${c.cyan}\u2502${c.reset}${c.bold}     \u{1f33f} ROOTROUTER \u2014 Benchmark                               ${c.cyan}\u2502${c.reset}`);
-  console.log(`${c.bold}${c.cyan}\u2502${c.reset}        Baseline vs RootRouter \u2022 50 queries                  ${c.cyan}\u2502${c.reset}`);
+  console.log(`${c.bold}${c.cyan}\u2502${c.reset}        Baseline vs RootRouter \u2022 ${queries.length} queries${isQuick ? ' (quick)' : ''}                  ${c.cyan}\u2502${c.reset}`);
   console.log(`${c.bold}${c.cyan}\u2514${'─'.repeat(62)}\u2518${c.reset}`);
   console.log('');
 
@@ -101,7 +104,7 @@ async function main() {
   let baselineTotalCost = 0;
   const baselineHistory: string[] = [];
 
-  for (const query of BENCHMARK_QUERIES) {
+  for (const query of queries) {
     let contextTokens = 0;
     for (const h of baselineHistory) contextTokens += estimateTokens(h);
     const queryTokens = estimateTokens(query);
@@ -139,8 +142,8 @@ async function main() {
 
   const baseHistory2: string[] = [];
 
-  for (let i = 0; i < BENCHMARK_QUERIES.length; i++) {
-    const query = BENCHMARK_QUERIES[i];
+  for (let i = 0; i < queries.length; i++) {
+    const query = queries[i];
     const result = await router.chat({
       agentId: 'benchmark-agent',
       messages: [{ role: 'user', content: query }],
@@ -193,7 +196,7 @@ async function main() {
   console.log('');
   console.log(`  ${c.bold}\u2500\u2500\u2500 Model Routing by Difficulty \u2500\u2500\u2500${c.reset}`);
   console.log('');
-  const totalQueries = BENCHMARK_QUERIES.length;
+  const totalQueries = queries.length;
   for (const [tier, data] of Object.entries(tierCounts)) {
     if (data.count === 0) continue;
     const tierColor = tier === 'fast' ? c.green : tier === 'powerful' ? c.red : c.yellow;
