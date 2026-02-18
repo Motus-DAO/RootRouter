@@ -244,7 +244,7 @@ This gives us a principled way to decompose the agent interaction space — not 
 
 | Document | Description |
 |----------|-------------|
-| [**E8 Systems Framework** (version 2)](docs/E8_Systems_Framework_Paper%20(version%202).pdf) | *Algebraic Structures of Collective Consciousness*. Working Paper. Algebraic models of collective intelligence and the E8 root system as a framework for symmetry in interaction spaces. |
+| [**E8 Systems Framework**](docs/E8_Systems_Framework_Paper%20(version%202).pdf) | *Algebraic Structures of Collective Consciousness*. Working Paper. Algebraic models of collective intelligence and the E8 root system as a framework for symmetry in interaction spaces. |
 | [**E8 AI Architecture**](docs/E8_AI_Architecture_Paper.pdf) | *Root-Structured Intelligence: An E8 Framework for Symmetry-Aware AI*. Working Paper. Architecture for symmetry-aware AI: root pairs, Weyl chambers, and context filtering. |
 
 Both papers are in [`docs/`](docs/). The Systems Framework paper grounds the algebraic semantics; the AI Architecture paper describes how RootRouter implements them.
