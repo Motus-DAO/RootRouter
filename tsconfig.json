@@ -3,10 +3,12 @@
     "target": "ES2022",
     "module": "commonjs",
     "lib": [
-      "ES2022"
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
     ],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -29,6 +31,9 @@
   },
   "include": [
     "src/**/*",
+    "app/**/*",
+    "components/**/*",
+    "hooks/**/*",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],

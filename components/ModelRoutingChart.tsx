@@ -43,7 +43,7 @@ export default function ModelRoutingChart({ entries }: Props) {
         maintainAspectRatio: false,
         plugins: {
           legend: {
-            position: 'bottom',
+            position: 'bottom' as const,
             labels: { color: 'rgba(255,255,255,0.8)', font: { size: 11 } },
           },
           tooltip: {

@@ -54,7 +54,7 @@ export default function TokensOverTimeChart({ entries }: Props) {
         plugins: {
           legend: { labels: { color: 'rgba(255,255,255,0.8)', font: { size: 11 } } },
           tooltip: {
-            callbacks: { label: (ctx: { parsed: { y: number } }) => `${ctx.parsed.y.toLocaleString()} tokens` },
+            callbacks: { label: (ctx: { parsed?: { y?: number | null } }) => `${Number(ctx.parsed?.y ?? 0).toLocaleString()} tokens` },
           },
         },
         scales: {

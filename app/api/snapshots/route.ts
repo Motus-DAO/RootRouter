@@ -4,7 +4,7 @@ import { api } from '../../../convex/_generated/api';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body = (await request.json()) as { runId?: string; agentId?: string; snapshot?: unknown };
     const { runId, agentId, snapshot } = body;
     if (typeof runId !== 'string' || typeof agentId !== 'string' || snapshot == null) {
       return NextResponse.json(

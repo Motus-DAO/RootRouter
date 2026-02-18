@@ -47,7 +47,7 @@ function ControlsBar({
           <input
             type="text"
             value={agentInput}
-            onChange={(e) => setAgentInput(e.target.value)}
+            onChange={(e) => setAgentInput((e.target as HTMLInputElement).value)}
             placeholder="0x..."
             style={{
               marginLeft: '0.5rem',

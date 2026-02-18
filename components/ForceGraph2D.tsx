@@ -63,7 +63,7 @@ export default function ForceGraph2DWrapper({ nodes, links, nodeLabel, height = 
       backgroundColor="rgba(26, 26, 36, 0.6)"
       nodeRelSize={relSize}
       nodeColor={() => getCssVar('--prism-cyan', '#00ffcc')}
-      nodeLabel={nodeLabel ?? ((n: GraphNode) => (n as { id: string }).id)}
+      nodeLabel={(nodeLabel ?? ((n: { id?: string | number }) => String(n?.id ?? ''))) as (n: unknown) => string}
       linkColor={() => 'rgba(0, 255, 204, 0.35)'}
       linkWidth={1}
     />
