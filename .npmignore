@@ -1,0 +1,5 @@
+# Only "files": ["dist", "README.md"] in package.json are published.
+# This ignore list is extra safety so nothing else gets included.
+*
+!dist/
+!README.md

@@ -265,7 +265,7 @@ export class RootRouter {
       body: JSON.stringify({
         model: params.model,
         messages: params.messages,
-        max_tokens: 2048,
+        max_completion_tokens: 2048,
       }),
     });
 
@@ -423,12 +423,14 @@ export class RootRouter {
     snapshot: {
       summary: import('./types').TelemetrySummary;
       agentGraph: ReturnType<AgentTopologyGraph['exportForSnapshot']>;
+      interactionGraph: ReturnType<InteractionGraph['exportForSnapshot']>;
       rootDirections: import('./types').RootDirection[];
       vectorSpaceSummary: ReturnType<StructuredVectorSpace['getSummary']>;
     };
   } {
     const summary = this.getTelemetry();
     const agentGraph = this.agentGraph.exportForSnapshot();
+    const interactionGraph = this.interactionGraph.exportForSnapshot();
     const rootDirections = this.vectorSpace.getRootDirections();
     const vectorSpaceSummary = this.vectorSpace.getSummary();
     return {
@@ -437,6 +439,7 @@ export class RootRouter {
       snapshot: {
         summary,
         agentGraph,
+        interactionGraph,
         rootDirections,
         vectorSpaceSummary,
       },

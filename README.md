@@ -125,6 +125,17 @@ console.log(`Saved ${result.telemetry.tokensSaved} tokens ($${result.telemetry.c
 console.log(`Chamber: ${result.telemetry.chamberUsed}, Model: ${result.telemetry.modelUsed}`);
 ```
 
+### SDK as NPM package
+
+The library is publishable to NPM. Build and publish:
+
+```bash
+npm run build          # emits dist/ (tsconfig.build.json)
+npm publish            # prepublishOnly runs build; only dist/ and README.md are in the tarball
+```
+
+Consumers can install with `npm install rootrouter` (or a scoped name like `@your-org/rootrouter` if you publish under a scope). The package exposes `main`, `types`, and `exports` for both CommonJS and ESM resolution.
+
 ### Dashboard
 
 Run the Next.js dashboard to view on-chain telemetry:

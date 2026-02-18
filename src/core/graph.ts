@@ -208,6 +208,37 @@ export class InteractionGraph {
       .map(r => r.pair);
   }
 
+  /** Serializable export for dashboard (nodes + edges as plain arrays). */
+  exportForSnapshot(): {
+    nodes: Array<{ id: string; chamberId: number | null; rootNorm: number; agentId: string; timestamp: number; degree: number }>;
+    edges: Array<{ sourceId: string; targetId: string; type: InteractionEdgeType; weight: number }>;
+  } {
+    const nodes = Array.from(this.nodes.values()).map((n) => ({
+      id: n.id,
+      chamberId: n.chamberId,
+      rootNorm: n.rootNorm,
+      agentId: n.agentId,
+      timestamp: n.timestamp,
+      degree: n.degree,
+    }));
+    const edgeSet = new Set<string>();
+    const edges: Array<{ sourceId: string; targetId: string; type: InteractionEdgeType; weight: number }> = [];
+    for (const node of this.nodes.values()) {
+      for (const edge of node.edges.values()) {
+        const key = [edge.sourceId, edge.targetId].sort().join('|');
+        if (edgeSet.has(key)) continue;
+        edgeSet.add(key);
+        edges.push({
+          sourceId: edge.sourceId,
+          targetId: edge.targetId,
+          type: edge.type,
+          weight: edge.weight,
+        });
+      }
+    }
+    return { nodes, edges };
+  }
+
   getStats(): {
     nodeCount: number;
     edgeCount: number;

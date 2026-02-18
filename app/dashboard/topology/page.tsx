@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
@@ -12,6 +12,11 @@ import {
   Tooltip,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import dynamic from 'next/dynamic';
+
+const ForceGraph2DWrapper = dynamic(() => import('../../../components/ForceGraph2D').then((m) => m.default), {
+  ssr: false,
+});
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
@@ -24,6 +29,7 @@ type SnapshotData = {
       totalTokensSaved: number;
       totalCostSaved: number;
       avgRootNorm: number;
+      topModel?: string;
       chambers: Array<{
         id: number;
         avgRootNorm: number;
@@ -37,6 +43,10 @@ type SnapshotData = {
     agentGraph: {
       nodes: Array<{ agentId: string; totalInteractions: number; avgRootNorm: number; chamberSpecialization: Record<number, number> }>;
       edges: Array<{ sourceAgentId: string; targetAgentId: string; delegationCount: number; avgDelegationSuccess: number }>;
+    };
+    interactionGraph?: {
+      nodes: Array<{ id: string; chamberId: number | null; rootNorm: number; agentId: string; timestamp: number; degree: number }>;
+      edges: Array<{ sourceId: string; targetId: string; type: string; weight: number }>;
     };
     rootDirections?: Array<{ index: number; eigenvalue: number; varianceRatio: number }>;
     vectorSpaceSummary?: { directionsFound: number; varianceExplained: number; activeChambers: number };
@@ -139,8 +149,35 @@ function SnapshotView({ data }: { data: SnapshotData }) {
   const s = data.snapshot;
   const summary = s.summary;
   const chambers = summary.chambers ?? [];
-  const agentGraph = s.agentGraph ?? { nodes: [], edges: [] };
+  const rawAgentGraph = s.agentGraph ?? { nodes: [], edges: [] };
+  // Prefer agent graph nodes; fallback to summary.agents so we always show agents (e.g. from basic/benchmark single-agent runs)
+  const nodesForDisplay =
+    rawAgentGraph.nodes?.length > 0
+      ? rawAgentGraph.nodes
+      : (summary.agents ?? []).map((a) => ({
+          agentId: a.agentId,
+          totalInteractions: a.interactions,
+          avgRootNorm: a.avgRootNorm,
+          chamberSpecialization: {} as Record<number, number>,
+        }));
+  const edgesForDisplay = rawAgentGraph.edges ?? [];
+  const interactionGraph = s.interactionGraph ?? { nodes: [], edges: [] };
   const vsStats = summary.vectorSpaceStats ?? s.vectorSpaceSummary;
+
+  const agentGraphData = useMemo(
+    () => ({
+      nodes: nodesForDisplay.map((n) => ({ id: n.agentId })),
+      links: edgesForDisplay.map((e) => ({ source: e.sourceAgentId, target: e.targetAgentId })),
+    }),
+    [nodesForDisplay, edgesForDisplay]
+  );
+  const interactionGraphData = useMemo(
+    () => ({
+      nodes: interactionGraph.nodes.map((n) => ({ id: n.id })),
+      links: interactionGraph.edges.map((e) => ({ source: e.sourceId, target: e.targetId })),
+    }),
+    [interactionGraph.nodes, interactionGraph.edges]
+  );
 
   const chartData = {
     labels: chambers.sort((a, b) => a.avgRootNorm - b.avgRootNorm).map((c) => `#${c.id}`),
@@ -190,6 +227,14 @@ function SnapshotView({ data }: { data: SnapshotData }) {
             {chambers.length}
           </div>
         </div>
+        {summary.topModel && (
+          <div className="holo-card-prism" style={{ padding: '0.75rem 1rem', position: 'relative', zIndex: 1 }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--prism-text-muted)' }}>Model used (top)</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', color: 'var(--prism-cyan)' }}>
+              {summary.topModel}
+            </div>
+          </div>
+        )}
         {vsStats && (
           <div className="holo-card-prism" style={{ padding: '0.75rem 1rem', position: 'relative', zIndex: 1 }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--prism-text-muted)' }}>Variance explained</div>
@@ -232,6 +277,76 @@ function SnapshotView({ data }: { data: SnapshotData }) {
         </div>
       )}
 
+      <div
+        className="holo-card-prism"
+        style={{ padding: '1rem 1.2rem', position: 'relative', zIndex: 1 }}
+      >
+        <div style={{ fontSize: '0.9rem', marginBottom: '0.6rem', color: 'var(--prism-text-muted)' }}>
+          Agent graph (nodes = agents, edges = delegations)
+        </div>
+        <ForceGraph2DWrapper
+          nodes={agentGraphData.nodes}
+          links={agentGraphData.links}
+          nodeLabel={(n) => n.id}
+          height={340}
+          nodeRelSize={agentGraphData.nodes.length <= 1 ? 14 : undefined}
+        />
+        {agentGraphData.nodes.length <= 1 && (
+          <p
+            style={{
+              marginTop: '0.75rem',
+              marginBottom: 0,
+              fontSize: '0.8rem',
+              color: 'var(--prism-text-dim)',
+            }}
+          >
+            Este run tiene un solo agente. Para ver varios nodos y delegaciones, ejecuta el demo <strong>swarm</strong>:{' '}
+            <code style={{ padding: '0.15rem 0.35rem', background: 'rgba(0,0,0,0.3)', borderRadius: 4 }}>
+              DEMO_QUICK=true npm run demo:swarm
+            </code>
+          </p>
+        )}
+      </div>
+
+      <div
+        className="holo-card-prism"
+        style={{ padding: '1rem 1.2rem', position: 'relative', zIndex: 1 }}
+      >
+        <div style={{ fontSize: '0.9rem', marginBottom: '0.6rem', color: 'var(--prism-text-muted)' }}>
+          Interaction graph (nodes = interactions, edges = temporal / topic / chamber links)
+        </div>
+        {interactionGraphData.nodes.length === 0 && (summary.graphStats?.nodeCount ?? 0) > 0 ? (
+          <div
+            style={{
+              height: 340,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.75rem',
+              color: 'var(--prism-text-muted)',
+              fontSize: '0.875rem',
+              textAlign: 'center',
+              padding: '1rem',
+            }}
+          >
+            <p style={{ margin: 0 }}>
+              This snapshot was saved before interaction graph export was added. Stats below show {summary.graphStats.nodeCount} nodes and {summary.graphStats.edgeCount} edges, but the node/edge lists are missing.
+            </p>
+            <p style={{ margin: 0, color: 'var(--prism-cyan)' }}>
+              Re-run the demo with the dashboard running and <code style={{ padding: '0.2rem 0.4rem', background: 'rgba(0,0,0,0.3)', borderRadius: 4 }}>DASHBOARD_URL=http://localhost:3000</code> in your env to push a new snapshot — the new one will show this graph.
+            </p>
+          </div>
+        ) : (
+          <ForceGraph2DWrapper
+            nodes={interactionGraphData.nodes}
+            links={interactionGraphData.links}
+            nodeLabel={(n) => n.id?.toString().slice(0, 12) ?? ''}
+            height={340}
+          />
+        )}
+      </div>
+
       <section
         style={{
           display: 'grid',
@@ -244,17 +359,17 @@ function SnapshotView({ data }: { data: SnapshotData }) {
           style={{ padding: '1rem 1.2rem', position: 'relative', zIndex: 1 }}
         >
           <div style={{ fontSize: '0.9rem', marginBottom: '0.6rem', color: 'var(--prism-text-muted)' }}>
-            Agent graph — nodes ({agentGraph.nodes.length})
+            Agent graph — nodes ({nodesForDisplay.length})
           </div>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.8rem', maxHeight: '200px', overflowY: 'auto' }}>
-            {agentGraph.nodes.map((n) => (
-              <li key={n.agentId} style={{ padding: '0.25rem 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            {nodesForDisplay.map((n) => (
+              <li key={n.agentId} style={{ padding: '0.35rem 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                 <span className="holo-badge" style={{ marginRight: '0.5rem' }}>{n.agentId}</span>
                 interactions: {n.totalInteractions}, avgNorm: {n.avgRootNorm.toFixed(3)}
               </li>
             ))}
-            {agentGraph.nodes.length === 0 && (
-              <li style={{ color: 'var(--prism-text-dim)' }}>Single-agent run — no multi-agent graph.</li>
+            {nodesForDisplay.length === 0 && (
+              <li style={{ color: 'var(--prism-text-dim)' }}>No agent data in this snapshot.</li>
             )}
           </ul>
         </div>
@@ -263,16 +378,16 @@ function SnapshotView({ data }: { data: SnapshotData }) {
           style={{ padding: '1rem 1.2rem', position: 'relative', zIndex: 1 }}
         >
           <div style={{ fontSize: '0.9rem', marginBottom: '0.6rem', color: 'var(--prism-text-muted)' }}>
-            Agent graph — edges ({agentGraph.edges.length})
+            Agent graph — edges ({edgesForDisplay.length})
           </div>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.8rem', maxHeight: '200px', overflowY: 'auto' }}>
-            {agentGraph.edges.map((e, i) => (
-              <li key={`${e.sourceAgentId}-${e.targetAgentId}-${i}`} style={{ padding: '0.25rem 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            {edgesForDisplay.map((e, i) => (
+              <li key={`${e.sourceAgentId}-${e.targetAgentId}-${i}`} style={{ padding: '0.35rem 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                 {e.sourceAgentId} → {e.targetAgentId} (delegations: {e.delegationCount})
               </li>
             ))}
-            {agentGraph.edges.length === 0 && (
-              <li style={{ color: 'var(--prism-text-dim)' }}>No delegation edges in this run.</li>
+            {edgesForDisplay.length === 0 && (
+              <li style={{ color: 'var(--prism-text-dim)' }}>No delegation edges (single-agent runs have no edges).</li>
             )}
           </ul>
         </div>

@@ -148,7 +148,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 export default function DashboardPage() {
   const [agentAddress, setAgentAddress] = useState(DEFAULT_AGENT);
   const [agentInput, setAgentInput] = useState(DEFAULT_AGENT);
-  const { loading, error, stats, entries, reload, lastLoadedCount } = useCeloTelemetry(agentAddress);
+  const { loading, error, stats, entries, estimatedCostSavedUsd, primaryModel, reload, lastLoadedCount } = useCeloTelemetry(agentAddress);
 
   const handleLoad = () => {
     const trimmed = agentInput.trim();
@@ -181,7 +181,7 @@ export default function DashboardPage() {
       <section
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
           gap: '1rem',
           marginBottom: '1.75rem',
         }}
@@ -195,6 +195,16 @@ export default function DashboardPage() {
           title="Tokens Saved"
           value={totalTokensSaved.toLocaleString()}
           subtitle="Across all routed requests"
+        />
+        <OverviewCard
+          title="Cost saved (est.)"
+          value={estimatedCostSavedUsd > 0 ? `$${estimatedCostSavedUsd.toFixed(4)}` : '—'}
+          subtitle="From tokens × avg $/token (on-chain does not store cost)"
+        />
+        <OverviewCard
+          title="Primary model"
+          value={primaryModel ? `${primaryModel.label} (${primaryModel.percent.toFixed(0)}%)` : '—'}
+          subtitle="Most used tier in recent window"
         />
         <OverviewCard
           title="Avg tokens / interaction"

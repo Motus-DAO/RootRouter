@@ -244,6 +244,27 @@ async function main() {
     console.log(`  ${c.green}Celo telemetry TX: ${txHash}${c.reset}`);
     console.log('');
   }
+
+  const dashboardUrl = process.env.DASHBOARD_URL?.replace(/\/$/, '');
+  if (dashboardUrl) {
+    try {
+      const runId = `benchmark-${Date.now()}`;
+      const payload = router.getSnapshotForExport(runId, 'benchmark-agent');
+      const res = await fetch(`${dashboardUrl}/api/snapshots`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        console.log(`  ${c.dim}Snapshot sent to dashboard. View at ${dashboardUrl}/dashboard/topology${c.reset}`);
+        console.log('');
+      } else {
+        console.log(`  ${c.dim}Snapshot upload failed: ${res.status}${c.reset}`);
+      }
+    } catch (e) {
+      console.log(`  ${c.dim}Snapshot upload error: ${e instanceof Error ? e.message : String(e)}${c.reset}`);
+    }
+  }
 }
 
 main().catch(console.error);

@@ -11,6 +11,9 @@ const TELEMETRY_ABI = [
   'function getRecentEntries(address _agent, uint256 _count) view returns (tuple(uint32 chamberId, uint16 rootNorm, uint8 modelTier, uint32 tokensSaved, uint32 timestamp)[])',
 ] as const;
 
+/** Rough USD per token saved (powerful vs fast delta). Used for dashboard cost estimate when chain does not report cost. */
+export const ESTIMATED_USD_PER_TOKEN_SAVED = 40e-6;
+
 const provider = new JsonRpcProvider(CELO_RPC_URL);
 
 type RawStats = {
@@ -39,11 +42,23 @@ export type TelemetryEntry = {
   timestamp: number;
 };
 
+export type ModelTierSummary = {
+  tier: number;
+  label: string;
+  count: number;
+  percent: number;
+};
+
 export type UseCeloTelemetryResult = {
   loading: boolean;
   error: string | null;
   stats: TelemetryStats | null;
   entries: TelemetryEntry[];
+  /** Estimated cost saved (USD) from tokensSaved * ESTIMATED_USD_PER_TOKEN_SAVED */
+  estimatedCostSavedUsd: number;
+  /** Most used model tier and distribution (Fast / Balanced / Powerful) */
+  modelSummary: ModelTierSummary[];
+  primaryModel: { label: string; percent: number } | null;
   reload: () => Promise<void>;
   lastLoadedCount: number;
 };
@@ -57,6 +72,27 @@ export function useCeloTelemetry(agentAddress: string): UseCeloTelemetryResult {
   const [entries, setEntries] = useState<TelemetryEntry[]>([]);
   const [lastLoadedCount, setLastLoadedCount] = useState(0);
   const agentRef = useRef<string | null>(agentAddress || null);
+
+  const modelTierLabels: Record<number, string> = { 0: 'Fast', 1: 'Balanced', 2: 'Powerful' };
+  const estimatedCostSavedUsd = stats ? stats.tokensSaved * ESTIMATED_USD_PER_TOKEN_SAVED : 0;
+  const { modelSummary, primaryModel } = (() => {
+    if (entries.length === 0) return { modelSummary: [] as ModelTierSummary[], primaryModel: null as { label: string; percent: number } | null };
+    const counts: Record<number, number> = { 0: 0, 1: 0, 2: 0 };
+    entries.forEach((e) => {
+      if (e.modelTier >= 0 && e.modelTier <= 2) counts[e.modelTier] += 1;
+    });
+    const total = entries.length;
+    const modelSummary: ModelTierSummary[] = [0, 1, 2].map((tier) => ({
+      tier,
+      label: modelTierLabels[tier] ?? `Tier ${tier}`,
+      count: counts[tier] ?? 0,
+      percent: total > 0 ? ((counts[tier] ?? 0) / total) * 100 : 0,
+    }));
+    const byCount = [...modelSummary].sort((a, b) => b.count - a.count);
+    const top = byCount[0];
+    const primaryModel = top && top.count > 0 ? { label: top.label, percent: top.percent } : null;
+    return { modelSummary, primaryModel };
+  })();
 
   useEffect(() => {
     agentRef.current = agentAddress || null;
@@ -113,6 +149,9 @@ export function useCeloTelemetry(agentAddress: string): UseCeloTelemetryResult {
     error,
     stats,
     entries,
+    estimatedCostSavedUsd,
+    modelSummary,
+    primaryModel,
     reload,
     lastLoadedCount,
   };
