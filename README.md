@@ -18,10 +18,14 @@ interaction graphs, and symmetry-aware context filtering.**
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](https://github.com/Motus-DAO/RootRouter/blob/main/LICENSE)
 [![Live Demo](https://img.shields.io/badge/Live-root--router.vercel.app-black?style=for-the-badge)](https://root-router.vercel.app)
 
+📄 **Backed by two working papers on algebraic AI architecture** — see [The Math](#the-math).
+
 ---
 
 <!-- Replace with your actual demo GIF once recorded -->
-![RootRouter Demo](./demo/demo.gif)
+<p align="center">
+  <img src="./demo/demo.gif" alt="RootRouter Demo" width="800">
+</p>
 
 ---
 
@@ -240,7 +244,7 @@ This gives us a principled way to decompose the agent interaction space — not 
 
 | Document | Description |
 |----------|-------------|
-| [**E8 Systems Framework** (version 2)](docs/E8_Systems_Framework_Paper%20(version%202).pdf) | *Algebraic Structures of Collective Consciousness*. Working Paper. Algebraic models of collective intelligence and the E8 root system as a framework for symmetry in interaction spaces. |
+| [**E8 Systems Framework** (version 2)](docs/E8_Systems_Framework_Paper (version 2).pdf) | *Algebraic Structures of Collective Consciousness*. Working Paper. Algebraic models of collective intelligence and the E8 root system as a framework for symmetry in interaction spaces. |
 | [**E8 AI Architecture**](docs/E8_AI_Architecture_Paper.pdf) | *Root-Structured Intelligence: An E8 Framework for Symmetry-Aware AI*. Working Paper. Architecture for symmetry-aware AI: root pairs, Weyl chambers, and context filtering. |
 
 Both papers are in [`docs/`](docs/). The Systems Framework paper grounds the algebraic semantics; the AI Architecture paper describes how RootRouter implements them.
@@ -291,6 +295,9 @@ Celo's mobile-first, low-fee architecture makes it uniquely suited for high-freq
 ## Project Structure
 
 ```
+docs/
+├── E8_Systems_Framework_Paper (version 2).pdf
+└── E8_AI_Architecture_Paper.pdf
 src/
 ├── types.ts              # All type definitions
 ├── config.ts             # Configuration with sensible defaults
@@ -330,9 +337,9 @@ Run `npm run build` to produce `dist/` for the library; required when installing
 
 ## Real-World Usage
 
-Dominant agent routing stacks (e.g. [OpenRouter](https://openrouter.ai)) are widely adopted, but they push full context on every call — so automated workloads and multi-agent swarms burn token budgets fast, and orchestration at scale gets prohibitively expensive. RootRouter cuts that cost by sending only algebraically relevant context and routing by chamber.
-
 [MotusDAO](https://app.motusdao.org) will run RootRouter in production: a decentralized mental health platform connecting Spanish-speaking psychologists and patients globally, using it as the agent layer for routing and analyzing therapeutic interaction data at scale.
+
+Dominant agent routing stacks (e.g. [OpenRouter](https://openrouter.ai)) are widely adopted, but they push full context on every call — so automated workloads and multi-agent swarms burn token budgets fast, and orchestration at scale gets prohibitively expensive. RootRouter cuts that cost by sending only algebraically relevant context and routing by chamber.
 
 ---
 
