@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="RootRouter/public/RootRouter.gif" alt="RootRouter" width="480">
+</p>
+
 # 🌿 RootRouter - SDK
 
 ### Algebraic Agent Infrastructure for AI Swarms
