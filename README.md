@@ -328,7 +328,7 @@ Run `npm run build` to produce `dist/` for the library; required when installing
 
 Dominant agent routing stacks (e.g. [OpenRouter](https://openrouter.ai)) are widely adopted, but they push full context on every call — so automated workloads and multi-agent swarms burn token budgets fast, and orchestration at scale gets prohibitively expensive. RootRouter cuts that cost by sending only algebraically relevant context and routing by chamber.
 
-[MotusDAO](https://motusdao.org) runs RootRouter in production: a decentralized mental health platform connecting Spanish-speaking psychologists and patients globally, using it as the agent layer for routing and analyzing therapeutic interaction data at scale.
+[MotusDAO](https://app.motusdao.org) will run RootRouter in production: a decentralized mental health platform connecting Spanish-speaking psychologists and patients globally, using it as the agent layer for routing and analyzing therapeutic interaction data at scale.
 
 ---
 
