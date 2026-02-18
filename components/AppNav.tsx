@@ -22,21 +22,22 @@ export default function AppNav() {
         backdropFilter: 'blur(8px)',
       }}
     >
-      <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <Link
-          href="/"
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '1rem',
-            fontWeight: 600,
-            color: 'var(--prism-cyan)',
-            textDecoration: 'none',
-            marginRight: '1.5rem',
-          }}
-        >
-          🌿 RootRouter
-        </Link>
-        {navItems.map(({ href, label }) => {
+      <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Link
+            href="/"
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '1rem',
+              fontWeight: 600,
+              color: 'var(--prism-cyan)',
+              textDecoration: 'none',
+              marginRight: '1.5rem',
+            }}
+          >
+            🌿 RootRouter
+          </Link>
+          {navItems.map(({ href, label }) => {
           const isActive = pathname === href || (href !== '/' && pathname.startsWith(href));
           return (
             <Link
@@ -57,6 +58,14 @@ export default function AppNav() {
             </Link>
           );
         })}
+        </div>
+        <Link
+          href="/dashboard"
+          className="landing-cta-primary"
+          style={{ flexShrink: 0 }}
+        >
+          Open Dashboard
+        </Link>
       </div>
     </nav>
   );

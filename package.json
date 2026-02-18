@@ -1,6 +1,6 @@
 {
   "name": "rootrouter",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Algebraic agent infrastructure for AI swarms on Celo — root-pair telemetry, interaction graphs, and symmetry-aware routing",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -12,6 +12,14 @@
     }
   },
   "files": ["dist", "README.md"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Motus-DAO/RootRouter.git"
+  },
+  "homepage": "https://github.com/Motus-DAO/RootRouter#readme",
+  "bugs": {
+    "url": "https://github.com/Motus-DAO/RootRouter/issues"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepublishOnly": "npm run build",
@@ -27,7 +35,14 @@
   "keywords": [
     "ai-agents",
     "celo",
-    "agent-infrastructure"
+    "agent-infrastructure",
+    "weyl-chambers",
+    "openrouter",
+    "llm",
+    "context-filtering",
+    "telemetry",
+    "root-systems",
+    "knowledge-graph"
   ],
   "author": "Gerry Alvarez <gerry@motusdao.org>",
   "license": "MIT",
