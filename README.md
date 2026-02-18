@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🌿 RootRouter
+# 🌿 RootRouter - SDK
 
 ### Algebraic Agent Infrastructure for AI Swarms
 
@@ -63,45 +63,17 @@ All telemetry is logged on **Celo** for verifiable, auditable agent infrastructu
 
 *Run `npx tsx demo/benchmark.ts` to reproduce. Numbers from 50-query benchmark, TF-IDF embeddings, simulated LLM. Cost savings vary ±5% between runs due to random output token simulation. Quality measured by root norm (intent-execution alignment) — lower is better, same means no quality loss.*
 
-## Quick Start
+---
+
+## Install
 
 ```bash
-# Clone and install
-git clone https://github.com/gerryalvarez/rootrouter.git
-cd rootrouter
-npm install
-
-# Run the demo (works offline — no API keys needed!)
-npx tsx demo/basic.ts
-
-# Run the benchmark
-npx tsx demo/benchmark.ts
-
-# Run the multi-agent swarm demo
-npx tsx demo/swarm.ts
+npm install rootrouter
 ```
 
-To see **live telemetry from Celo**, use the dashboard (see [Dashboard](#dashboard) below).
+(Publish with a scoped name if you prefer: e.g. `@your-org/rootrouter`. The package exposes CJS/ESM and TypeScript types.)
 
-### Configuration
-
-- **Offline demos:** No API keys required; demos use a simulated LLM.
-- **Real LLM + Celo:** Copy `.env.example` to `.env` and set at least:
-  - `LLM_BASE_URL`, `LLM_API_KEY` (e.g. OpenAI or OpenRouter)
-  - `CELO_RPC_URL`, `CELO_PRIVATE_KEY`, `TELEMETRY_CONTRACT_ADDRESS`
-  For mainnet, use `CELO_RPC_URL_MAINNET`, `CELO_PRIVATE_KEY_MAINNET`, and `TELEMETRY_CONTRACT_ADDRESS_MAINNET`. Deployed mainnet contract: [`0x91aB56AbB4577B2B61Eed9A727cCb0D39896f0Ab`](https://explorer.celo.org/mainnet/address/0x91aB56AbB4577B2B61Eed9A727cCb0D39896f0Ab).
-
-**Lighter / cheaper runs:** Set `DEMO_QUICK=true` to reduce interactions (basic: 15, benchmark: 15, swarm: 21). Use a single cheap model for all tiers (e.g. `MODEL_FAST=gpt-4o-mini`, `MODEL_BALANCED=gpt-4o-mini`, `MODEL_POWERFUL=gpt-4o-mini`) to keep real-LLM tests affordable.
-
-**Using both xAI and OpenAI:** RootRouter uses a single LLM endpoint (e.g. OpenRouter). To route easy tasks to xAI and hard tasks to OpenAI, set OpenRouter as `LLM_BASE_URL` and pick models per tier in `.env`, for example:
-- `MODEL_FAST=x-ai/grok-3-mini` (or another fast xAI model)
-- `MODEL_BALANCED=openai/gpt-4o-mini`
-- `MODEL_POWERFUL=openai/gpt-4o`
-OpenRouter’s single API key will proxy to both providers; RootRouter then selects the tier (and thus the model) by chamber difficulty.
-
-### Use in Your Agent
-
-Install from the repo (e.g. `npm install /path/to/RootRouter` or from GitHub), run `npm run build` in RootRouter to generate `dist/`, then in your bot:
+## Usage
 
 ```typescript
 import { RootRouter } from 'rootrouter';
@@ -114,7 +86,6 @@ const router = new RootRouter({
   telemetryContractAddress: process.env.TELEMETRY_CONTRACT_ADDRESS,
 });
 
-// Wrap your existing chat calls
 const result = await router.chat({
   agentId: 'my-agent',
   messages: [{ role: 'user', content: 'Write a sorting algorithm' }],
@@ -125,18 +96,42 @@ console.log(`Saved ${result.telemetry.tokensSaved} tokens ($${result.telemetry.c
 console.log(`Chamber: ${result.telemetry.chamberUsed}, Model: ${result.telemetry.modelUsed}`);
 ```
 
-### SDK as NPM package
+That’s it for the SDK: wire in your LLM and Celo env vars, then use `router.chat()` instead of calling the LLM directly. Telemetry is written on-chain; no extra backend required unless you want the Topology view (see [Dashboard](#dashboard)).
 
-The library is publishable to NPM. Build and publish:
+---
+
+## Quick Start (repo & demos)
+
+To run the demos or contribute:
 
 ```bash
-npm run build          # emits dist/ (tsconfig.build.json)
-npm publish            # prepublishOnly runs build; only dist/ and README.md are in the tarball
+git clone https://github.com/Motus-DAO/rootrouter.git
+cd rootrouter
+npm install
+
+# Offline demos (no API keys)
+npx tsx demo/basic.ts
+npx tsx demo/benchmark.ts
+npx tsx demo/swarm.ts
 ```
 
-Consumers can install with `npm install rootrouter` (or a scoped name like `@your-org/rootrouter` if you publish under a scope). The package exposes `main`, `types`, and `exports` for both CommonJS and ESM resolution.
+To see **live telemetry from Celo**, use the [dashboard](#dashboard).
 
-### Dashboard
+### Configuration
+
+- **Offline demos:** No API keys required; demos use a simulated LLM.
+- **Real LLM + Celo:** Copy `.env.example` to `.env` and set at least:
+  - `LLM_BASE_URL`, `LLM_API_KEY` (e.g. OpenAI or OpenRouter)
+  - `CELO_RPC_URL`, `CELO_PRIVATE_KEY`, `TELEMETRY_CONTRACT_ADDRESS`
+  For mainnet, use `CELO_RPC_URL_MAINNET`, `CELO_PRIVATE_KEY_MAINNET`, and `TELEMETRY_CONTRACT_ADDRESS_MAINNET`. Deployed mainnet contract: [`0x91aB56AbB4577B2B61Eed9A727cCb0D39896f0Ab`](https://explorer.celo.org/mainnet/address/0x91aB56AbB4577B2B61Eed9A727cCb0D39896f0Ab).
+
+**Lighter / cheaper runs:** Set `DEMO_QUICK=true` to reduce interactions. Use a single cheap model for all tiers (e.g. `MODEL_FAST=gpt-4o-mini`, `MODEL_BALANCED=gpt-4o-mini`, `MODEL_POWERFUL=gpt-4o-mini`) to keep real-LLM tests affordable.
+
+**Using both xAI and OpenAI:** Set OpenRouter as `LLM_BASE_URL` and pick models per tier in `.env` (e.g. `MODEL_FAST=x-ai/grok-3-mini`, `MODEL_POWERFUL=openai/gpt-4o`). RootRouter selects the tier by chamber difficulty.
+
+---
+
+## Dashboard
 
 Run the Next.js dashboard to view on-chain telemetry:
 
@@ -144,13 +139,16 @@ Run the Next.js dashboard to view on-chain telemetry:
 npm run dashboard
 ```
 
-Open [http://localhost:3000](http://localhost:3000), enter the **agent address** (wallet that sends telemetry, e.g. your deployer address), and click **Load from Celo** to fetch stats and recent entries from the contract.
+Open [http://localhost:3000](http://localhost:3000), enter the **agent address** (wallet that sends telemetry, e.g. your deployer), and click **Load from Celo** to fetch stats and recent entries from the contract.
 
-**Convex (optional backend):** The dashboard uses [Convex](https://convex.dev) to store run snapshots for the **Topology** view (chambers, agent graph, vector space). To enable it:
+### Convex (optional — Topology view)
 
-1. Run `npx convex dev` once — log in if prompted, then it will create `.env.local` with `NEXT_PUBLIC_CONVEX_URL` and generate the Convex backend.
-2. Restart the dashboard (`npm run dashboard`). Open **Topology** in the nav to see run snapshots.
-3. To push a snapshot from a demo: set `DASHBOARD_URL=http://localhost:3000` in `.env`, start the dashboard, then run e.g. `npm run demo:basic`. The script will POST the run state to the dashboard; refresh the Topology page to see it.
+The **Topology** tab (chambers, agent graph, vector space) uses [Convex](https://convex.dev) to store run snapshots.
+
+- **Use our shared backend:** You can point your dashboard at the project’s Convex deployment (we’ll provide `NEXT_PUBLIC_CONVEX_URL` in the repo or docs). Everyone using it shares the same DB — we see all agents using the framework; no setup for you.
+- **Use your own DB (private):** Run `npx convex dev` once (log in if prompted). It creates `.env.local` with your own `NEXT_PUBLIC_CONVEX_URL`. Your snapshots stay in your Convex project; only you see them.
+
+To push a snapshot from a demo: set `DASHBOARD_URL=http://localhost:3000` in `.env`, start the dashboard, then run e.g. `npm run demo:basic`. The script POSTs the run to the dashboard; refresh Topology to see it.
 
 ## Architecture
 
