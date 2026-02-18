@@ -232,14 +232,18 @@ RootRouter is inspired by **root systems** from Lie algebra — mathematical str
 
 This gives us a principled way to decompose the agent interaction space — not arbitrary k-means clusters, but algebraically-motivated regions with well-defined adjacency and reflection operations.
 
-For the full mathematical treatment, see:
+### Reference Papers
 
-- Alvarez, G. (2026). *Algebraic Structures of Collective Consciousness*. Working Paper.
-- Alvarez, G. (2026). *Root-Structured Intelligence: An E8 Framework for Symmetry-Aware AI*. Working Paper.
+| Document | Description |
+|----------|-------------|
+| [**E8 Systems Framework** (version 2)](docs/E8_Systems_Framework_Paper%20(version%202).pdf) | *Algebraic Structures of Collective Consciousness*. Working Paper. Algebraic models of collective intelligence and the E8 root system as a framework for symmetry in interaction spaces. |
+| [**E8 AI Architecture**](docs/E8_AI_Architecture_Paper.pdf) | *Root-Structured Intelligence: An E8 Framework for Symmetry-Aware AI*. Working Paper. Architecture for symmetry-aware AI: root pairs, Weyl chambers, and context filtering. |
+
+Both papers are in [`docs/`](docs/). The Systems Framework paper grounds the algebraic semantics; the AI Architecture paper describes how RootRouter implements them.
 
 ---
 
-## Celo Integration
+## Celo Mainnet Integration
 
 RootRouter logs telemetry on Celo for three reasons:
 
@@ -322,7 +326,9 @@ Run `npm run build` to produce `dist/` for the library; required when installing
 
 ## Real-World Usage
 
-RootRouter is used in production by [MotusDAO](https://motusdao.org) — a decentralized mental health platform connecting Spanish-speaking psychologists and patients globally — as the underlying agent infrastructure for routing and analyzing therapeutic interaction data at scale.
+Dominant agent routing stacks (e.g. [OpenRouter](https://openrouter.ai)) are widely adopted, but they push full context on every call — so automated workloads and multi-agent swarms burn token budgets fast, and orchestration at scale gets prohibitively expensive. RootRouter cuts that cost by sending only algebraically relevant context and routing by chamber.
+
+[MotusDAO](https://motusdao.org) runs RootRouter in production: a decentralized mental health platform connecting Spanish-speaking psychologists and patients globally, using it as the agent layer for routing and analyzing therapeutic interaction data at scale.
 
 ---
 
