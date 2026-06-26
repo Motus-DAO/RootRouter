@@ -7,17 +7,17 @@ This is the "it just happens" path: unlike the MCP server (where the agent must 
 ## How it works
 
 ```
-agent  --(POST /v1/chat/completions, full history)-->  rootrouter-proxy
-                                                          |
-                                          keeps system + final user message,
-                                          selects only the relevant prior turns
-                                          (cosine similarity + MMR) to fit a budget
-                                                          |
-                                          --(trimmed request, your API key)-->  upstream LLM
-                                                          |
+agent  --(POST /v1/chat/completions)-->  rootrouter-proxy
+                                            |
+                            records turns -> FileContextStore (cross-session)
+                            trims in-request history + recalls relevant store hits
+                                            |
+                            --(trimmed request, your API key)-->  upstream LLM
+                                            |
         agent  <--(streamed response, unchanged)-----------
 ```
 
+- **Stateful (default):** every request upserts turns into a file-backed store (`ROOTROUTER_STORE_PATH`). Later requests with short `messages[]` can recall relevant prior turns from earlier sessions.
 - Only `POST` requests whose path contains `/chat/completions` are transformed; everything else is proxied verbatim.
 - Your API key is passed through untouched (the `Authorization` header is forwarded), so the proxy never needs your credentials.
 - Streaming (`stream: true`) responses are piped straight through.
@@ -26,7 +26,8 @@ agent  --(POST /v1/chat/completions, full history)-->  rootrouter-proxy
 ### What it keeps vs. trims
 
 - Always kept: system messages, tool/function messages, any multimodal (non-string) content, and the final user message.
-- Candidates for trimming: prior plain-text `user`/`assistant` turns. The subset most relevant to the final user message is kept (in original order); the rest is dropped.
+- **In-request:** prior plain-text `user`/`assistant` turns — most relevant subset kept (MMR + budget).
+- **From store:** relevant turns from past requests injected before the final user message (split budget via `ROOTROUTER_STORE_SHARE`, default 50%).
 
 ## Install / build
 
@@ -74,10 +75,13 @@ Set `ROOTROUTER_UPSTREAM_ORIGIN` to the provider origin and use the provider's n
 |----------|---------|---------|
 | `PORT` | `8787` | Port the proxy listens on |
 | `ROOTROUTER_UPSTREAM_ORIGIN` | `https://openrouter.ai` | Origin to forward to (path is preserved) |
+| `ROOTROUTER_STORE_PATH` | `~/.rootrouter/store.json` | Persistent cross-session context store |
+| `ROOTROUTER_STORE_SHARE` | `0.5` | Fraction of `contextBudget` for store recall vs in-request |
+| `ROOTROUTER_MAX_ITEMS` | unbounded | Cap stored items (oldest evicted) |
 | `ROOTROUTER_CONTEXT_BUDGET` | `4000` | Token budget for the selectable prior-turn context |
 | `ROOTROUTER_MIN_TOKENS_TO_FILTER` | `6000` | Only trim when the prompt exceeds this many tokens |
 | `ROOTROUTER_MMR_LAMBDA` | `0.7` | Relevance vs diversity trade-off |
-| `EMBEDDING_API_KEY` | unset | Use real embeddings instead of local TF-IDF (passed to RootRouter) |
+| `EMBEDDING_API_KEY` | unset | Use real embeddings instead of local TF-IDF |
 
 ## Per-request overrides (headers)
 
@@ -85,12 +89,14 @@ Set `ROOTROUTER_UPSTREAM_ORIGIN` to the provider origin and use the provider's n
 |--------|--------|
 | `x-rootrouter-disable: true` | Skip trimming for this request |
 | `x-rootrouter-budget: <n>` | Override the context token budget for this request |
+| `x-rootrouter-agent-id: <id>` | Scope store recall/recording per agent (default `default`) |
 
 ## Response headers
 
 | Header | Meaning |
 |--------|---------|
 | `x-rootrouter-tokens-saved` | Tokens removed from the prompt for this request |
+| `x-rootrouter-store-recalled` | Turns injected from the persistent store |
 
 ## Health check
 

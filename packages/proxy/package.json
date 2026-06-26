@@ -12,7 +12,8 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "dev": "tsx src/server.ts",
-    "test": "tsx test/filter.test.ts"
+    "test": "tsx test/filter.test.ts && tsx test/stateful.test.ts",
+    "test:e2e": "node test/e2e.mjs && node test/e2e-stateful.mjs"
   },
   "keywords": ["openai-proxy", "llm-proxy", "rootrouter", "context-selection", "token-reduction", "ai-agents"],
   "author": "Gerry Alvarez <gerry@motusdao.org>",

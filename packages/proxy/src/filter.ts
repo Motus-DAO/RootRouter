@@ -1,4 +1,9 @@
-import { selectContext, estimateTokens, type ContextItem } from 'rootrouter';
+import { selectContext, estimateTokens, type ContextEngine, type ContextItem } from 'rootrouter';
+import {
+  messagesToRequestCandidates,
+  messagesToStoreItems,
+  storeItemsExcludingRequest,
+} from './messageStore.js';
 
 /** A single OpenAI-style chat message (content may be a string or multimodal array). */
 export interface ChatMessage {
@@ -18,6 +23,12 @@ export interface FilterOptions {
   minTokensToFilter: number;
   /** Relevance vs diversity trade-off for MMR (default 0.7). */
   mmrLambda?: number;
+  /** When set, enables cross-session store recall and persistence. */
+  engine?: ContextEngine;
+  /** Scope store recall to this agent (default `default`). */
+  agentId?: string;
+  /** Fraction of contextBudget for store hits when engine is set (default 0.5). */
+  storeShare?: number;
 }
 
 export interface FilterOutcome {
@@ -28,6 +39,8 @@ export interface FilterOutcome {
   tokensSaved: number;
   keptCandidates: number;
   totalCandidates: number;
+  /** Selected items recalled from the persistent store (stateful mode only). */
+  storeRecalled?: number;
 }
 
 /** Extract plain text from a message's content (string or array of text parts). */
@@ -55,37 +68,34 @@ function tokensOf(messages: ChatMessage[]): number {
   return sum;
 }
 
-/**
- * Decide whether a message is a "candidate" for trimming.
- *
- * Conservative on purpose: only plain-text user/assistant turns are candidates.
- * System messages, tool/function messages, and any non-string (multimodal) content
- * are always kept, so we never drop instructions or structured payloads.
- */
 function isCandidate(m: ChatMessage, index: number, lastUserIndex: number): boolean {
-  if (index === lastUserIndex) return false; // the current query — always keep
+  if (index === lastUserIndex) return false;
   if (m.role !== 'user' && m.role !== 'assistant') return false;
   if (typeof m.content !== 'string') return false;
   return true;
 }
 
+function findLastUserIndex(messages: ChatMessage[]): number {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'user') return i;
+  }
+  return -1;
+}
+
 /**
  * Trim a chat-completions message array down to its relevant core.
  *
- * Keeps all system messages, tool/function messages, multimodal messages, and the
- * final user message. Among the remaining prior user/assistant turns, selects the
- * subset most relevant to the final user message (cosine similarity + MMR) that fits
- * `contextBudget`, then re-emits everything in original order so the conversation
- * stays coherent.
+ * Stateless (no `engine`): selects among in-request prior turns only.
  *
- * Fails open: any error returns the original messages unchanged (handled by caller).
+ * Stateful (`engine` set): upserts turns into the file-backed store, merges store
+ * candidates with in-request history, selects within a split budget, and injects
+ * recalled store turns into the prompt before the final user message.
  */
 export async function filterMessages(
   messages: ChatMessage[],
   options: FilterOptions
 ): Promise<FilterOutcome> {
   const tokensBefore = tokensOf(messages);
-
   const noop: FilterOutcome = {
     messages,
     filtered: false,
@@ -97,59 +107,49 @@ export async function filterMessages(
   };
 
   if (!Array.isArray(messages) || messages.length === 0) return noop;
-  if (tokensBefore < options.minTokensToFilter) return noop;
 
-  // Find the last user message — that's the query we select context for.
-  let lastUserIndex = -1;
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === 'user') {
-      lastUserIndex = i;
-      break;
-    }
-  }
-  if (lastUserIndex === -1) return noop; // nothing to anchor relevance to
+  const lastUserIndex = findLastUserIndex(messages);
+  if (lastUserIndex === -1) return noop;
 
   const query = messageText(messages[lastUserIndex].content);
   if (!query.trim()) return noop;
 
-  // Build candidate items from prior plain-text turns.
-  const candidateIndices: number[] = [];
-  const items: ContextItem[] = [];
-  for (let i = 0; i < messages.length; i++) {
-    if (isCandidate(messages[i], i, lastUserIndex)) {
-      candidateIndices.push(i);
-      items.push({
-        id: String(i),
-        text: messageText(messages[i].content),
-        kind: 'message',
-        // Earlier messages get earlier timestamps so recency is meaningful if enabled.
-        timestamp: i,
-      });
-    }
+  if (options.engine) {
+    return filterStateful(messages, options, tokensBefore, lastUserIndex, query);
   }
 
-  if (items.length === 0) return noop;
+  if (tokensBefore < options.minTokensToFilter) return noop;
+  return filterStateless(messages, options, tokensBefore, lastUserIndex, query);
+}
+
+async function filterStateless(
+  messages: ChatMessage[],
+  options: FilterOptions,
+  tokensBefore: number,
+  lastUserIndex: number,
+  query: string
+): Promise<FilterOutcome> {
+  const noop: FilterOutcome = {
+    messages,
+    filtered: false,
+    tokensBefore,
+    tokensAfter: tokensBefore,
+    tokensSaved: 0,
+    keptCandidates: 0,
+    totalCandidates: 0,
+  };
+
+  const requestItems = messagesToRequestCandidates(messages, lastUserIndex);
+  if (requestItems.length === 0) return noop;
 
   const result = await selectContext({
     query,
-    items,
+    items: requestItems,
     tokenBudget: options.contextBudget,
     options: { mmrLambda: options.mmrLambda ?? 0.7, baseline: 'all' },
   });
 
-  const keptIds = new Set(result.selected.map((i) => i.id));
-
-  // Re-emit in original order: keep non-candidates always, candidates only if selected.
-  const candidateSet = new Set(candidateIndices);
-  const out: ChatMessage[] = [];
-  for (let i = 0; i < messages.length; i++) {
-    if (candidateSet.has(i)) {
-      if (keptIds.has(String(i))) out.push(messages[i]);
-    } else {
-      out.push(messages[i]);
-    }
-  }
-
+  const out = assembleMessages(messages, lastUserIndex, result.selected, []);
   const tokensAfter = tokensOf(out);
   const tokensSaved = Math.max(0, tokensBefore - tokensAfter);
 
@@ -159,7 +159,137 @@ export async function filterMessages(
     tokensBefore,
     tokensAfter,
     tokensSaved,
-    keptCandidates: keptIds.size,
-    totalCandidates: items.length,
+    keptCandidates: result.selected.length,
+    totalCandidates: requestItems.length,
   };
+}
+
+async function filterStateful(
+  messages: ChatMessage[],
+  options: FilterOptions,
+  tokensBefore: number,
+  lastUserIndex: number,
+  query: string
+): Promise<FilterOutcome> {
+  const noop: FilterOutcome = {
+    messages,
+    filtered: false,
+    tokensBefore,
+    tokensAfter: tokensBefore,
+    tokensSaved: 0,
+    keptCandidates: 0,
+    totalCandidates: 0,
+    storeRecalled: 0,
+  };
+
+  const engine = options.engine!;
+  const agentId = options.agentId ?? 'default';
+  const storeShare = options.storeShare ?? 0.5;
+
+  // Always persist turns from this request (even if we don't trim).
+  engine.record(messagesToStoreItems(messages, agentId));
+
+  const shouldTrim = tokensBefore >= options.minTokensToFilter;
+  const requestItems = messagesToRequestCandidates(messages, lastUserIndex);
+  const requestTexts = new Set(
+    messages
+      .filter((m) => typeof m.content === 'string')
+      .map((m) => messageText(m.content))
+  );
+  const storeItems = storeItemsExcludingRequest(engine.getStore().all(agentId), requestTexts);
+
+  // Short requests with no in-request history still recall from store (cross-session memory).
+  const needsStoreRecall = requestItems.length === 0 && storeItems.length > 0;
+
+  if (!shouldTrim && !needsStoreRecall) {
+    await engine.save();
+    return noop;
+  }
+
+  let storeBudget = Math.floor(options.contextBudget * storeShare);
+  let requestBudget = Math.max(0, options.contextBudget - storeBudget);
+
+  if (needsStoreRecall && !shouldTrim) {
+    storeBudget = options.contextBudget;
+    requestBudget = 0;
+  }
+  const mmrOpts = { mmrLambda: options.mmrLambda ?? 0.7, baseline: 'all' as const };
+
+  const selectedRequest: ContextItem[] = [];
+  const selectedStore: ContextItem[] = [];
+
+  if (requestItems.length > 0 && requestBudget > 0) {
+    const r = await selectContext({
+      query,
+      items: requestItems,
+      tokenBudget: requestBudget,
+      options: mmrOpts,
+    });
+    selectedRequest.push(...r.selected);
+  }
+
+  if (storeItems.length > 0 && storeBudget > 0) {
+    const r = await selectContext({
+      query,
+      items: storeItems,
+      tokenBudget: storeBudget,
+      options: mmrOpts,
+    });
+    selectedStore.push(...r.selected);
+  }
+
+  const out = assembleMessages(messages, lastUserIndex, selectedRequest, selectedStore);
+  const tokensAfter = tokensOf(out);
+  const tokensSaved = Math.max(0, tokensBefore - tokensAfter);
+
+  await engine.save();
+
+  return {
+    messages: out,
+    filtered: out.length !== messages.length || tokensSaved > 0,
+    tokensBefore,
+    tokensAfter,
+    tokensSaved,
+    keptCandidates: selectedRequest.length + selectedStore.length,
+    totalCandidates: requestItems.length + storeItems.length,
+    storeRecalled: selectedStore.length,
+  };
+}
+
+/** Rebuild the message list: protected prefix, selected middle, injected store, suffix from final user. */
+function assembleMessages(
+  messages: ChatMessage[],
+  lastUserIndex: number,
+  selectedRequest: ContextItem[],
+  selectedStore: ContextItem[]
+): ChatMessage[] {
+  const keptReqIndices = new Set(
+    selectedRequest
+      .map((i) => i.metadata?.messageIndex)
+      .filter((n): n is number => typeof n === 'number')
+  );
+
+  const out: ChatMessage[] = [];
+
+  for (let i = 0; i < lastUserIndex; i++) {
+    if (!isCandidate(messages[i], i, lastUserIndex)) {
+      out.push(messages[i]);
+    } else if (keptReqIndices.has(i)) {
+      out.push(messages[i]);
+    }
+  }
+
+  const storeSorted = [...selectedStore].sort(
+    (a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0)
+  );
+  for (const item of storeSorted) {
+    const role = (item.metadata?.role as string) ?? 'user';
+    out.push({ role, content: item.text });
+  }
+
+  for (let i = lastUserIndex; i < messages.length; i++) {
+    out.push(messages[i]);
+  }
+
+  return out;
 }
