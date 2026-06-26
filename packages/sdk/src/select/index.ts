@@ -33,6 +33,15 @@ export { InMemoryContextStore } from './store/inMemoryStore';
 export type { InMemoryStoreOptions } from './store/inMemoryStore';
 export { FileContextStore } from './store/fileStore';
 export type { FileStoreOptions } from './store/fileStore';
+export { buildSelectionSnapshot, buildSelectionStats, attachSelectionSnapshot } from './snapshot';
+export type {
+  SelectionSnapshot,
+  SelectionStats,
+  RepoGraphSnapshot,
+  RepoGraphCommunity,
+  RepoGraphNode,
+  RepoGraphEdge,
+} from './snapshot';
 
 /**
  * Stateless one-shot context selection. Convenience wrapper for callers that already

@@ -1,15 +1,16 @@
 {
   "name": "@rootrouter/proxy",
-  "version": "0.1.0",
+  "version": "0.2.0-beta.0",
   "description": "Transparent OpenAI-compatible proxy that trims prompt context with RootRouter before forwarding upstream. Point any agent's base_url at it to cut tokens with zero code changes.",
   "type": "module",
   "main": "dist/server.js",
   "bin": {
     "rootrouter-proxy": "dist/server.js"
   },
-  "files": ["dist", "README.md"],
+  "files": ["dist", "README.md", "LICENSE", "NOTICE", "COMMERCIAL.md", "BETA.md"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "node ../../scripts/sync-legal.mjs && npm run build",
     "start": "node dist/server.js",
     "dev": "tsx src/server.ts",
     "test": "tsx test/filter.test.ts && tsx test/stateful.test.ts",
@@ -19,7 +20,17 @@
   "author": "Gerry Alvarez <gerry@motusdao.org>",
   "license": "MIT",
   "dependencies": {
-    "rootrouter": "^0.1.1"
+    "rootrouter": "^0.2.0-beta.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Motus-DAO/RootRouter.git",
+    "directory": "packages/proxy"
+  },
+  "homepage": "https://github.com/Motus-DAO/RootRouter#readme",
+  "bugs": "https://github.com/Motus-DAO/RootRouter/issues",
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

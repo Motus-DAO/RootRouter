@@ -11,7 +11,7 @@ const faqData: FAQItem[] = [
   {
     question: 'How does RootRouter reduce costs?',
     answer:
-      'We send only relevant conversation history to the LLM instead of the full thread. Using root-pair telemetry we discover chambers (regions of similar behavior) and filter context by chamber, graph, and reflection — so you typically save 40–70% of tokens with no quality loss.',
+      'We send only relevant conversation history to the LLM instead of the full thread. Using root-pair telemetry we discover chambers (regions of similar behavior) and filter context by chamber, graph, and reflection. Demo benchmarks have shown meaningful token savings; your results will depend on workload and configuration.',
   },
   {
     question: 'What is root-pair telemetry?',

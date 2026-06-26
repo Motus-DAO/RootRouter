@@ -5,8 +5,10 @@
 
 ### Algebraic Agent Infrastructure for AI Swarms
 
-**Cut your agent's LLM costs 40–70% with root-pair telemetry,
+**Reduce LLM context cost with root-pair telemetry,
 interaction graphs, and symmetry-aware context filtering.**
+
+*Early beta · Self-hosted MIT · See [BETA.md](./BETA.md)*
 
 *Verifiable on-chain analytics on Celo · ERC-8004 compatible*
 
@@ -29,7 +31,7 @@ AI agents are expensive. Every autonomous agent burns tokens sending **full conv
 **Agent frameworks** orchestrate tasks but don't structure the interaction space.  
 **Nobody** uses the mathematical properties of the interaction graph itself.
 
-The result: agents waste 40–70% of their token budget on irrelevant context, use expensive models for simple tasks, and have no verifiable record of their decision-making.
+The result: agents often send large amounts of irrelevant context on every call, use expensive models for simple tasks, and may lack a verifiable record of their decision-making.
 
 ---
 
@@ -363,7 +365,7 @@ Run `npm run build` to produce `dist/` for the library.
 
 ## Real-World Usage
 
-[MotusDAO](https://app.motusdao.org) — a decentralized mental health platform connecting Spanish-speaking psychologists and patients globally — will run RootRouter in production as the agent routing layer for its therapeutic interaction infrastructure. Therapeutic conversations have strong relational graph structure; the knowledge graph traversal captures session context in ways that pure vector similarity cannot, making it particularly well-suited for clinical agent workflows at scale.
+[MotusDAO](https://app.motusdao.org) — a decentralized mental health platform connecting Spanish-speaking psychologists and patients globally — plans to use RootRouter as an agent routing layer for therapeutic interaction infrastructure. Therapeutic conversations have strong relational graph structure; knowledge graph traversal may capture session context in ways that pure vector similarity cannot.
 
 ---
 
@@ -375,4 +377,4 @@ Run `npm run build` to produce `dist/` for the library.
 
 ## License
 
-MIT — use it, fork it, build on it.
+MIT — see [LICENSE](./LICENSE). Third-party notices in [NOTICE](./NOTICE). Beta terms in [BETA.md](./BETA.md). Future commercial surfaces in [COMMERCIAL.md](./COMMERCIAL.md).

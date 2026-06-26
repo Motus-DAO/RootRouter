@@ -1,15 +1,16 @@
 {
   "name": "@rootrouter/mcp",
-  "version": "0.1.0",
+  "version": "0.2.0-beta.0",
   "description": "Model Context Protocol server exposing RootRouter context selection — record context and select the minimal relevant slice within a token budget. Works with Codex, Cursor, OpenClaw, Hermes, and any MCP client.",
   "type": "module",
   "main": "dist/server.js",
   "bin": {
     "rootrouter-mcp": "dist/server.js"
   },
-  "files": ["dist", "README.md"],
+  "files": ["dist", "README.md", "LICENSE", "NOTICE", "COMMERCIAL.md", "BETA.md"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "node ../../scripts/sync-legal.mjs && npm run build",
     "start": "node dist/server.js",
     "dev": "tsx src/server.ts",
     "test:smoke": "npm run build && node test/smoke.mjs"
@@ -19,8 +20,18 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "rootrouter": "^0.1.1",
+    "rootrouter": "^0.2.0-beta.0",
     "zod": "^3.25.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Motus-DAO/RootRouter.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/Motus-DAO/RootRouter#readme",
+  "bugs": "https://github.com/Motus-DAO/RootRouter/issues",
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

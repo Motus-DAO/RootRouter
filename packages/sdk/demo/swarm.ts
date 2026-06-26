@@ -6,7 +6,7 @@
  * Run: npm run demo:swarm
  */
 
-import { RootRouter } from '../src';
+import { RootRouter, attachSelectionSnapshot } from '../src';
 
 const c = {
   reset: process.stdout.isTTY !== false ? '\x1b[0m' : '',
@@ -275,6 +275,7 @@ async function main() {
     try {
       const runId = `swarm-${Date.now()}`;
       const payload = router.getSnapshotForExport(runId, 'swarm');
+      await attachSelectionSnapshot(payload);
       const res = await fetch(`${dashboardUrl}/api/snapshots`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

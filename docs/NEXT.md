@@ -65,9 +65,9 @@ flowchart TB
 | `@rootrouter/mcp` | `record_context`, `select_context`, `stats` over a file-backed store | Agent must call tools |
 | `@rootrouter/proxy` | Trims `messages[]` on every `/chat/completions` before upstream | **None** (transparent) |
 
-**Main gap (P0):** the proxy is stateless per request — it only selects among turns in the HTTP body, not cross-session memory.
+**Main gap (P0):** ~~the proxy is stateless per request~~ — **resolved** (stateful proxy, Phase 1).
 
-**Secondary gap (P2):** no native **repo structure graph** — TF-IDF on text misses import/call relationships.
+**Secondary gap (P2):** ~~no native repo structure graph~~ — **resolved** (RepoGraph, Phase 2).
 
 ---
 
@@ -195,24 +195,24 @@ Only RootRouter unifies all three under one `ContextEngine` store and one select
 
 ### 4.1 npm surface
 
-- [ ] Publish `rootrouter`, `@rootrouter/proxy`, `@rootrouter/mcp`.
-- [ ] One-liner:
+- [x] Publish prep: `repository`, `publishConfig`, `prepublishOnly`, `npm run publish:packages` (see [`docs/PUBLISH.md`](PUBLISH.md)).
+- [x] One-liner (after npm publish):
   ```bash
-  npm install rootrouter
+  npm install rootrouter @rootrouter/proxy @rootrouter/mcp
+  npx rootrouter index ./my-repo
   npx rootrouter-proxy
   npx rootrouter-mcp
-  npx rootrouter index ./my-repo
   ```
 
 ### 4.2 Agent presets
 
-- [ ] `rootrouter init cursor` — `.cursor/mcp.json` + proxy snippet.
-- [ ] `rootrouter init codex` — `~/.codex/config.toml` fragment.
+- [x] `rootrouter init cursor` — `.cursor/mcp.json` + proxy env snippet.
+- [x] `rootrouter init codex` — `~/.codex/config.toml` fragment.
 
 ### 4.3 Dashboard
 
-- [ ] `selectionStats` in Convex snapshots (tokens saved per session).
-- [ ] Topology view: RepoGraph communities + chambers overlay.
+- [x] `selectionStats` in Convex snapshots (`buildSelectionSnapshot`, `rootrouter snapshot`, demos with `ROOTROUTER_STORE_PATH`).
+- [x] Topology view: RepoGraph communities + import overlay graph.
 
 ---
 
@@ -224,7 +224,7 @@ Only RootRouter unifies all three under one `ContextEngine` store and one select
 | **P1** | Embedding cache + proxy env parity | Better relevance |
 | **P2** | Native RepoGraph + graphBoost (Phase 2) | Coding-agent quality — **done (MVP)** |
 | **P3** | ANN index + recall metrics (Phase 3) | Scale + trust |
-| **P4** | `rootrouter init` + publish (Phase 4) | Distribution |
+| **P4** | `rootrouter init` + publish (Phase 4) | Distribution — **done (publish via `npm run publish:packages`)** |
 
 ---
 

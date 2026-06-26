@@ -1,6 +1,6 @@
 {
   "name": "rootrouter-monorepo",
-  "version": "0.1.1",
+  "version": "0.2.0-beta.0",
   "private": true,
   "description": "RootRouter monorepo: SDK, dashboard, contracts",
   "workspaces": [
@@ -13,6 +13,9 @@
     "mcp:start": "npm run start -w @rootrouter/mcp",
     "proxy:build": "npm run build -w @rootrouter/proxy",
     "proxy:start": "npm run start -w @rootrouter/proxy",
+    "build:all": "npm run build -w rootrouter && npm run build -w @rootrouter/proxy && npm run build -w @rootrouter/mcp",
+    "legal:sync": "node scripts/sync-legal.mjs",
+    "publish:packages": "npm run legal:sync && npm run build:all && npm publish -w rootrouter && npm publish -w @rootrouter/proxy && npm publish -w @rootrouter/mcp",
     "demo:basic": "npm run demo:basic -w rootrouter",
     "demo:swarm": "npm run demo:swarm -w rootrouter",
     "demo:benchmark": "npm run demo:benchmark -w rootrouter",
