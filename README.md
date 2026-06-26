@@ -79,7 +79,7 @@ All telemetry is logged on **Celo** for verifiable, auditable agent infrastructu
  Graph Edges          —                ~81              ~4.0 avg degree
 ```
 
-*Run `npx tsx demo/benchmark.ts` to reproduce. Numbers from 50-query benchmark, TF-IDF embeddings, simulated LLM. Cost savings vary ±5% between runs. Quality measured by root norm — lower is better, same means no quality loss.*
+*Run `npm run demo:benchmark` (or `npx tsx demo/benchmark.ts --seed 42` for reproducible numbers). Metrics use aligned token definitions; results export to `benchmarks/results/{timestamp}.json`. Quality measured by root norm — lower is better, same means no quality loss.*
 
 ---
 
@@ -132,6 +132,18 @@ npx tsx demo/basic.ts        # 40 interactions, single agent
 npx tsx demo/swarm.ts        # multi-agent topology routing
 npx tsx demo/benchmark.ts    # baseline vs RootRouter comparison
 ```
+
+### Benchmark (fair comparison, reproducible)
+
+The benchmark uses **aligned token accounting** (same context definition for baseline and RootRouter) and **explicit metrics**: `raw_input_tokens`, `filtered_context_tokens`, `effective_billed_tokens`. Results are exported to `benchmarks/results/{timestamp}.json`.
+
+| Run | Command |
+|-----|--------|
+| **Quick** (15 queries) | `DEMO_QUICK=true npm run demo:benchmark` |
+| **Full** (50 queries) | `npm run demo:benchmark` |
+| **Reproducible** (same seed ⇒ same numbers) | `npx tsx demo/benchmark.ts --seed 42` (from `packages/sdk`) |
+
+Regression tests: `npm run test` runs `math.test.ts` and `benchmark.test.ts` (consistency and seed reproducibility).
 
 To see **live telemetry from Celo**, use the [dashboard](#dashboard).
 

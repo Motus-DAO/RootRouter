@@ -1,73 +1,29 @@
 {
-  "name": "rootrouter",
+  "name": "rootrouter-monorepo",
   "version": "0.1.1",
-  "description": "Algebraic agent infrastructure for AI swarms on Celo — root-pair telemetry, interaction graphs, and symmetry-aware routing",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
+  "private": true,
+  "description": "RootRouter monorepo: SDK, dashboard, contracts",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w rootrouter",
+    "mcp:build": "npm run build -w @rootrouter/mcp",
+    "mcp:start": "npm run start -w @rootrouter/mcp",
+    "demo:basic": "npm run demo:basic -w rootrouter",
+    "demo:swarm": "npm run demo:swarm -w rootrouter",
+    "demo:benchmark": "npm run demo:benchmark -w rootrouter",
+    "test": "npm run test -w rootrouter",
+    "deploy:contract": "npm run deploy:contract -w rootrouter",
+    "dashboard": "npm run dev -w @rootrouter/dashboard",
+    "dashboard:build": "npm run build -w @rootrouter/dashboard",
+    "dashboard:start": "npm run start -w @rootrouter/dashboard"
   },
-  "files": ["dist", "README.md"],
   "repository": {
     "type": "git",
     "url": "https://github.com/Motus-DAO/RootRouter.git"
   },
-  "homepage": "https://github.com/Motus-DAO/RootRouter#readme",
-  "bugs": {
-    "url": "https://github.com/Motus-DAO/RootRouter/issues"
-  },
-  "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "prepublishOnly": "npm run build",
-    "dev": "tsx watch src/index.ts",
-    "demo:basic": "tsx demo/basic.ts",
-    "demo:swarm": "tsx demo/swarm.ts",
-    "demo:benchmark": "tsx demo/benchmark.ts",
-    "test": "tsx test/math.test.ts",
-    "deploy:contract": "tsx scripts/deploy.ts",
-    "dashboard": "next dev",
-    "dashboard:build": "next build"
-  },
-  "keywords": [
-    "ai-agents",
-    "celo",
-    "agent-infrastructure",
-    "weyl-chambers",
-    "openrouter",
-    "llm",
-    "context-filtering",
-    "telemetry",
-    "root-systems",
-    "knowledge-graph"
-  ],
   "author": "Gerry Alvarez <gerry@motusdao.org>",
-  "license": "MIT",
-  "dependencies": {
-    "chart.js": "^4.5.1",
-    "convex": "^1.31.0",
-    "dotenv": "^16.4.0",
-    "ethers": "^6.13.0",
-    "next": "^16.1.6",
-    "postprocessing": "^6.38.2",
-    "react": "^19.2.4",
-    "react-chartjs-2": "^5.3.1",
-    "react-dom": "^19.2.4",
-    "react-force-graph-2d": "^1.29.1",
-    "three": "^0.182.0",
-    "uuid": "^9.0.0"
-  },
-  "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@types/three": "^0.182.0",
-    "@types/uuid": "^9.0.0",
-    "solc": "^0.8.33",
-    "tsx": "^4.7.0",
-    "typescript": "^5.4.0"
-  }
+  "license": "MIT"
 }

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "rootrouter": {
+      "command": "node",
+      "args": ["/Users/main/RootRouter/packages/mcp/dist/server.js"],
+      "env": {
+        "ROOTROUTER_STORE_PATH": "/Users/main/RootRouter/.rootrouter/store.json"
+      }
+    }
+  }
+}

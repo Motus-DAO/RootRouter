@@ -7,7 +7,7 @@ description: Work with the RootRouter codebase — algebraic agent infrastructur
 
 ## When to use
 
-- Editing `src/`, `demo/`, `app/dashboard/`, or `contracts/`
+- Editing `packages/sdk/src/`, `packages/sdk/demo/`, `apps/dashboard/`, or `contracts/`
 - Running or modifying demos: `demo/basic.ts`, `demo/swarm.ts`, `demo/benchmark.ts`
 - Dashboard: Next.js app, Convex snapshots, topology view
 - Publishing or consuming the SDK as NPM package
@@ -15,13 +15,15 @@ description: Work with the RootRouter codebase — algebraic agent infrastructur
 
 ## Quick reference
 
+Monorepo layout: `packages/sdk`, `apps/dashboard`, `contracts/` (root).
+
 | What | Where / command |
 |------|------------------|
-| Public API | `src/index.ts` |
-| Config | `src/config.ts`, `.env` (see `.env.example`) |
-| Build SDK | `npm run build` → `dist/` (uses `tsconfig.build.json`) |
-| Demos | `npm run demo:basic`, `demo:swarm`, `demo:benchmark` |
-| Dashboard | `npm run dashboard` (Next.js, port 3000) |
+| Public API | `packages/sdk/src/index.ts` |
+| Config | `packages/sdk/src/config.ts`, `.env` (root or package) |
+| Build SDK | From root: `npm run build`; in package: `npm run build -w rootrouter` → `packages/sdk/dist/` |
+| Demos | From root: `npm run demo:basic`, `demo:swarm`, `demo:benchmark` |
+| Dashboard | From root: `npm run dashboard` (Next.js, port 3000); build: `npm run dashboard:build` |
 | Topology snapshots | Set `DASHBOARD_URL=http://localhost:3000`, run a demo; snapshots POST to `/api/snapshots`, stored in Convex |
 | Telemetry contract | `contracts/RootRouterTelemetry.sol`; mainnet `0x91aB56AbB4577B2B61Eed9A727cCb0D39896f0Ab` |
 

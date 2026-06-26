@@ -1,0 +1,30 @@
+{
+  "name": "@rootrouter/mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server exposing RootRouter context selection — record context and select the minimal relevant slice within a token budget. Works with Codex, Cursor, OpenClaw, Hermes, and any MCP client.",
+  "type": "module",
+  "main": "dist/server.js",
+  "bin": {
+    "rootrouter-mcp": "dist/server.js"
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "dev": "tsx src/server.ts",
+    "test:smoke": "npm run build && node test/smoke.mjs"
+  },
+  "keywords": ["mcp", "model-context-protocol", "rootrouter", "context-selection", "token-reduction", "ai-agents"],
+  "author": "Gerry Alvarez <gerry@motusdao.org>",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "rootrouter": "^0.1.1",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  }
+}

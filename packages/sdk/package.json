@@ -1,0 +1,42 @@
+{
+  "name": "rootrouter",
+  "version": "0.1.1",
+  "description": "Algebraic agent infrastructure for AI swarms on Celo — root-pair telemetry, interaction graphs, and symmetry-aware routing",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build",
+    "dev": "tsx watch src/index.ts",
+    "demo:basic": "tsx demo/basic.ts",
+    "demo:swarm": "tsx demo/swarm.ts",
+    "demo:benchmark": "tsx demo/benchmark.ts",
+    "test": "tsx test/math.test.ts && tsx test/select.test.ts && tsx test/benchmark.test.ts",
+    "test:e2e": "tsx test/chat-pipeline.e2e.ts",
+    "test:all": "npm run test && npm run test:e2e",
+    "deploy:contract": "tsx scripts/deploy.ts"
+  },
+  "keywords": ["ai-agents", "celo", "agent-infrastructure", "weyl-chambers", "openrouter", "llm", "context-filtering", "telemetry", "root-systems", "knowledge-graph"],
+  "author": "Gerry Alvarez <gerry@motusdao.org>",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.0",
+    "ethers": "^6.13.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/uuid": "^9.0.0",
+    "solc": "^0.8.33",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  }
+}

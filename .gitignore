@@ -6,3 +6,6 @@ dist/
 *.d.ts.map
 
 .env.local
+
+# RootRouter MCP local context store
+.rootrouter/
