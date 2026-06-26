@@ -11,6 +11,8 @@
     "build": "npm run build -w rootrouter",
     "mcp:build": "npm run build -w @rootrouter/mcp",
     "mcp:start": "npm run start -w @rootrouter/mcp",
+    "proxy:build": "npm run build -w @rootrouter/proxy",
+    "proxy:start": "npm run start -w @rootrouter/proxy",
     "demo:basic": "npm run demo:basic -w rootrouter",
     "demo:swarm": "npm run demo:swarm -w rootrouter",
     "demo:benchmark": "npm run demo:benchmark -w rootrouter",

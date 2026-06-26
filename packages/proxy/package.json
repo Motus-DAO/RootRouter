@@ -1,0 +1,28 @@
+{
+  "name": "@rootrouter/proxy",
+  "version": "0.1.0",
+  "description": "Transparent OpenAI-compatible proxy that trims prompt context with RootRouter before forwarding upstream. Point any agent's base_url at it to cut tokens with zero code changes.",
+  "type": "module",
+  "main": "dist/server.js",
+  "bin": {
+    "rootrouter-proxy": "dist/server.js"
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "dev": "tsx src/server.ts",
+    "test": "tsx test/filter.test.ts"
+  },
+  "keywords": ["openai-proxy", "llm-proxy", "rootrouter", "context-selection", "token-reduction", "ai-agents"],
+  "author": "Gerry Alvarez <gerry@motusdao.org>",
+  "license": "MIT",
+  "dependencies": {
+    "rootrouter": "^0.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  }
+}
