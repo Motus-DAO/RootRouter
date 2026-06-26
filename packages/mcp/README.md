@@ -16,6 +16,7 @@ Selection is query-aware (cosine similarity is the primary signal) and works fro
 
 | Tool | Input | Returns |
 |------|-------|---------|
+| `index_repo` | `path`, `agentId?` | chunks indexed, edges/communities stats, store size |
 | `record_context` | `items: [{ id?, text, kind?, agentId?, metadata? }]` | count recorded, total store size |
 | `select_context` | `query`, `tokenBudget?` (4000), `agentId?`, `mmrLambda?` (0.7), `baseline?` ('all') | selected items + tokens saved + reasoning |
 | `stats` | none | store size, selections served, cumulative tokens saved |

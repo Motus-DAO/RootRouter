@@ -10,11 +10,16 @@ import {
 } from './types';
 import { ContextSelector } from './selector';
 import { TfIdfEmbeddingProvider } from './embedding/tfidfProvider';
+import { CachedEmbeddingProvider } from './embedding/cachedProvider';
 import { InMemoryContextStore } from './store/inMemoryStore';
 
 export interface ContextEngineOptions {
   /** Embedding provider. Defaults to zero-dependency TF-IDF. */
   provider?: EmbeddingProvider;
+  /** Wrap provider in a content-hash embedding cache. Default true. */
+  useEmbeddingCache?: boolean;
+  /** Max embedding cache entries when cache is enabled. Default 10_000. */
+  embeddingCacheMaxEntries?: number;
   /** Context store. Defaults to in-memory. */
   store?: ContextStore;
   /**
@@ -50,7 +55,13 @@ export class ContextEngine {
   private totalSelections: number = 0;
 
   constructor(options: ContextEngineOptions = {}) {
-    this.provider = options.provider ?? new TfIdfEmbeddingProvider();
+    let provider = options.provider ?? new TfIdfEmbeddingProvider();
+    if (options.useEmbeddingCache !== false && !(provider instanceof CachedEmbeddingProvider)) {
+      provider = new CachedEmbeddingProvider(provider, {
+        maxEntries: options.embeddingCacheMaxEntries,
+      });
+    }
+    this.provider = provider;
     this.store = options.store ?? new InMemoryContextStore();
     this.selector = new ContextSelector(this.provider);
     this.useChambers = options.useChambers ?? false;
@@ -84,6 +95,10 @@ export class ContextEngine {
     }
 
     const result = await this.selector.select(query, candidates, options, this.vectorSpace);
+
+    if (result.selected.length > 0 && 'touchSelected' in this.store) {
+      (this.store as InMemoryContextStore).touchSelected(result.selected.map((i) => i.id));
+    }
 
     this.totalTokensSaved += result.tokensSaved;
     this.totalSelections += 1;

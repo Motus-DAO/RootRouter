@@ -29,7 +29,25 @@ export interface FilterOptions {
   agentId?: string;
   /** Fraction of contextBudget for store hits when engine is set (default 0.5). */
   storeShare?: number;
+  /** Savings baseline: 'window' compares last N turns; 'all' uses full candidate pool. */
+  baseline?: 'all' | 'window';
+  /** Window size when baseline is 'window'. Default 20. */
+  baselineWindowSize?: number;
+  /** When `'down'`, invoke onRecallFeedback for dropped turns (thumbs-down hook). */
+  recallFeedback?: 'down';
+  /** Callback invoked when recallFeedback is `'down'`. */
+  onRecallFeedback?: RecallFeedbackHandler;
 }
+
+export interface RecallFeedbackPayload {
+  agentId: string;
+  query: string;
+  droppedMessageIndices: number[];
+  droppedStoreIds: string[];
+  feedback: 'down';
+}
+
+export type RecallFeedbackHandler = (payload: RecallFeedbackPayload) => void;
 
 export interface FilterOutcome {
   messages: ChatMessage[];
@@ -41,6 +59,10 @@ export interface FilterOutcome {
   totalCandidates: number;
   /** Selected items recalled from the persistent store (stateful mode only). */
   storeRecalled?: number;
+  /** In-request message indices dropped by trimming. */
+  droppedMessageIndices?: number[];
+  /** Store item ids considered but not injected. */
+  droppedStoreIds?: string[];
 }
 
 /** Extract plain text from a message's content (string or array of text parts). */
@@ -146,8 +168,14 @@ async function filterStateless(
     query,
     items: requestItems,
     tokenBudget: options.contextBudget,
-    options: { mmrLambda: options.mmrLambda ?? 0.7, baseline: 'all' },
+    options: selectionOpts(options),
   });
+
+  const droppedMessageIndices = computeDroppedMessageIndices(
+    messages,
+    lastUserIndex,
+    result.selected
+  );
 
   const out = assembleMessages(messages, lastUserIndex, result.selected, []);
   const tokensAfter = tokensOf(out);
@@ -161,6 +189,8 @@ async function filterStateless(
     tokensSaved,
     keptCandidates: result.selected.length,
     totalCandidates: requestItems.length,
+    droppedMessageIndices,
+    droppedStoreIds: result.droppedIds,
   };
 }
 
@@ -213,10 +243,11 @@ async function filterStateful(
     storeBudget = options.contextBudget;
     requestBudget = 0;
   }
-  const mmrOpts = { mmrLambda: options.mmrLambda ?? 0.7, baseline: 'all' as const };
+  const mmrOpts = selectionOpts(options);
 
   const selectedRequest: ContextItem[] = [];
   const selectedStore: ContextItem[] = [];
+  let droppedStoreIds: string[] = [];
 
   if (requestItems.length > 0 && requestBudget > 0) {
     const r = await selectContext({
@@ -236,7 +267,16 @@ async function filterStateful(
       options: mmrOpts,
     });
     selectedStore.push(...r.selected);
+    droppedStoreIds = r.droppedIds ?? [];
   }
+
+  const droppedMessageIndices = computeDroppedMessageIndices(
+    messages,
+    lastUserIndex,
+    selectedRequest
+  );
+
+  maybeRecallFeedback(options, agentId, query, droppedMessageIndices, droppedStoreIds);
 
   const out = assembleMessages(messages, lastUserIndex, selectedRequest, selectedStore);
   const tokensAfter = tokensOf(out);
@@ -253,6 +293,8 @@ async function filterStateful(
     keptCandidates: selectedRequest.length + selectedStore.length,
     totalCandidates: requestItems.length + storeItems.length,
     storeRecalled: selectedStore.length,
+    droppedMessageIndices,
+    droppedStoreIds,
   };
 }
 
@@ -292,4 +334,48 @@ function assembleMessages(
   }
 
   return out;
+}
+
+function selectionOpts(options: FilterOptions) {
+  return {
+    mmrLambda: options.mmrLambda ?? 0.7,
+    baseline: options.baseline ?? 'window',
+    windowSize: options.baselineWindowSize ?? 20,
+  };
+}
+
+function computeDroppedMessageIndices(
+  messages: ChatMessage[],
+  lastUserIndex: number,
+  selected: ContextItem[]
+): number[] {
+  const kept = new Set(
+    selected
+      .map((i) => i.metadata?.messageIndex)
+      .filter((n): n is number => typeof n === 'number')
+  );
+  const dropped: number[] = [];
+  for (let i = 0; i < lastUserIndex; i++) {
+    if (!isCandidate(messages[i], i, lastUserIndex)) continue;
+    if (!kept.has(i)) dropped.push(i);
+  }
+  return dropped;
+}
+
+function maybeRecallFeedback(
+  options: FilterOptions,
+  agentId: string,
+  query: string,
+  droppedMessageIndices: number[],
+  droppedStoreIds: string[]
+): void {
+  if (options.recallFeedback !== 'down' || !options.onRecallFeedback) return;
+  if (droppedMessageIndices.length === 0 && droppedStoreIds.length === 0) return;
+  options.onRecallFeedback({
+    agentId,
+    query,
+    droppedMessageIndices,
+    droppedStoreIds,
+    feedback: 'down',
+  });
 }

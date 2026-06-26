@@ -33,6 +33,8 @@ export interface ContextItem {
   tokens?: number;
   /** Optional creation/observation time (ms epoch); enables recency boost/eviction. */
   timestamp?: number;
+  /** Last time this item was selected (ms epoch); used for LRU eviction. */
+  lastSelectedAt?: number;
 }
 
 /** Baseline used to compute tokensSaved. */
@@ -58,6 +60,17 @@ export interface SelectionOptions {
    */
   chamberBoost?: number;
   /**
+   * Weight added for RepoGraph neighbors (1-hop via metadata.edges). Default 0.12 when
+   * repo nodes are present; set to 0 to disable.
+   */
+  graphBoost?: number;
+  /** Top-k relevance seeds for graph expansion. Default 3. */
+  graphSeedK?: number;
+  /** Extra boost for high-degree (hub) repo nodes, scaled by degree/maxDegree. Default 0.05. */
+  hubBoost?: number;
+  /** Max items selected per metadata.community (directory). Default 2; 0 disables. */
+  maxPerCommunity?: number;
+  /**
    * Baseline for tokensSaved: 'all' compares against sending every candidate;
    * 'window' compares against a recency window of windowSize items. Default 'all'.
    */
@@ -66,6 +79,13 @@ export interface SelectionOptions {
   windowSize?: number;
   /** Restrict candidates to this agent's items when selecting from a store. */
   agentId?: string;
+  /**
+   * When candidate count exceeds this threshold, use HNSW ANN prefilter before MMR.
+   * Default 500; set 0 to disable.
+   */
+  annThreshold?: number;
+  /** Top-k candidates to retrieve via ANN prefilter. Default 200. */
+  annPrefetchK?: number;
 }
 
 /** Per-item score breakdown for transparency/debugging. */
@@ -74,6 +94,7 @@ export interface ItemScore {
   relevance: number;
   recency: number;
   chamber: number;
+  graph: number;
   /** Final MMR-adjusted score at the moment the item was selected (or considered). */
   combined: number;
   selected: boolean;
@@ -101,7 +122,12 @@ export interface SelectionResult {
     selected: number;
     droppedByBudget: number;
     chamberBoosted: number;
+    graphBoosted: number;
+    /** Candidates before ANN prefilter (when applied). */
+    annPrefilteredFrom?: number;
   };
+  /** Item ids not selected (for recall metrics). */
+  droppedIds?: string[];
 }
 
 /**

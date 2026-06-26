@@ -94,6 +94,9 @@ export {
   ContextEngine,
   TfIdfEmbeddingProvider,
   ApiEmbeddingProvider,
+  CachedEmbeddingProvider,
+  LocalOnnxEmbeddingProvider,
+  buildEmbeddingProviderFromEnv,
   InMemoryContextStore,
   FileContextStore,
 } from './select';
@@ -108,6 +111,19 @@ export type {
   SelectionResult,
   ContextEngineOptions,
   ApiEmbeddingConfig,
+  CachedEmbeddingOptions,
+  LocalEmbeddingModel,
+  BuildProviderOptions,
   InMemoryStoreOptions,
   FileStoreOptions,
 } from './select';
+
+// RepoGraph — native repository indexer
+export { indexRepo, walkRepo, chunkFileContent, extractImports, detectLanguage } from './repo';
+export type {
+  IndexRepoOptions,
+  IndexRepoResult,
+  IndexRepoStats,
+  RepoNodeMetadata,
+  RepoLanguage,
+} from './repo';

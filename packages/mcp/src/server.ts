@@ -20,9 +20,9 @@ import { z } from 'zod';
 import {
   ContextEngine,
   FileContextStore,
-  ApiEmbeddingProvider,
+  buildEmbeddingProviderFromEnv,
+  indexRepo,
   type ContextItem,
-  type EmbeddingProvider,
   type SelectionBaseline,
 } from 'rootrouter';
 
@@ -32,19 +32,6 @@ function resolveStorePath(): string {
   return path.join(os.homedir(), '.rootrouter', 'store.json');
 }
 
-function buildProvider(): EmbeddingProvider | undefined {
-  // Opt-in real embeddings when an API key is configured; otherwise the engine
-  // falls back to its zero-dependency TF-IDF default.
-  const apiKey = process.env.EMBEDDING_API_KEY;
-  if (!apiKey) return undefined;
-  return new ApiEmbeddingProvider({
-    embeddingApiKey: apiKey,
-    embeddingApiUrl: process.env.EMBEDDING_API_URL ?? 'https://api.openai.com/v1/embeddings',
-    embeddingModel: process.env.EMBEDDING_MODEL ?? 'text-embedding-3-small',
-    embeddingDimension: Number(process.env.EMBEDDING_DIMENSION ?? 128),
-  });
-}
-
 function buildEngine(): ContextEngine {
   const store = new FileContextStore({
     filePath: resolveStorePath(),
@@ -52,7 +39,7 @@ function buildEngine(): ContextEngine {
   });
   return new ContextEngine({
     store,
-    provider: buildProvider(),
+    provider: buildEmbeddingProviderFromEnv(),
     useChambers: (process.env.ROOTROUTER_USE_CHAMBERS ?? 'false').toLowerCase() === 'true',
   });
 }
@@ -106,6 +93,39 @@ server.registerTool(
         },
       ],
       structuredContent: { recorded: toRecord.length, totalItems: stats.items },
+    };
+  }
+);
+
+// ─── index_repo ───
+server.registerTool(
+  'index_repo',
+  {
+    title: 'Index repository',
+    description:
+      'Walk a codebase, chunk files, build a native RepoGraph (imports + directory communities), ' +
+      'and upsert chunks into the persistent context store for later select_context calls.',
+    inputSchema: {
+      path: z.string().describe('Absolute or relative path to the repository root'),
+      agentId: z.string().optional().describe('Agent id scope for indexed chunks (default repo)'),
+    },
+  },
+  async ({ path: repoPath, agentId }) => {
+    const result = indexRepo({ rootPath: repoPath, agentId: agentId ?? 'repo' });
+    engine.record(result.items);
+    await engine.save();
+    const stats = engine.stats();
+    return {
+      content: [
+        {
+          type: 'text',
+          text:
+            `Indexed ${result.stats.chunksIndexed} chunks from ${result.stats.filesScanned} files ` +
+            `(${result.stats.edgesCreated} edges, ${result.stats.communities} communities). ` +
+            `Store now holds ${stats.items} item(s).`,
+        },
+      ],
+      structuredContent: { ...result.stats, storeItems: stats.items },
     };
   }
 );

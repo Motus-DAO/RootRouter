@@ -19,6 +19,7 @@ const MMR_LAMBDA = process.env.ROOTROUTER_MMR_LAMBDA ? Number(process.env.ROOTRO
 const STORE_SHARE = process.env.ROOTROUTER_STORE_SHARE
   ? Number(process.env.ROOTROUTER_STORE_SHARE)
   : 0.5;
+const BASELINE_WINDOW = Number(process.env.ROOTROUTER_BASELINE_WINDOW ?? 20);
 
 const HOP_BY_HOP = new Set([
   'connection',
@@ -84,6 +85,9 @@ async function handle(req: http.IncomingMessage, res: http.ServerResponse): Prom
 
   const disabled = (req.headers['x-rootrouter-disable'] ?? '').toString().toLowerCase() === 'true';
   const agentId = (req.headers['x-rootrouter-agent-id'] ?? 'default').toString();
+  const recallFeedbackHeader = (req.headers['x-rootrouter-recall-feedback'] ?? '')
+    .toString()
+    .toLowerCase();
 
   if (isChatCompletions(req) && rawBody.length > 0 && !disabled) {
     try {
@@ -99,6 +103,16 @@ async function handle(req: http.IncomingMessage, res: http.ServerResponse): Prom
           engine: getEngine(),
           agentId,
           storeShare: STORE_SHARE,
+          baseline: 'window',
+          baselineWindowSize: BASELINE_WINDOW,
+          recallFeedback: recallFeedbackHeader === 'down' ? 'down' : undefined,
+          onRecallFeedback: (payload) => {
+            console.error(
+              `[rootrouter-proxy] recall feedback down agent=${payload.agentId} ` +
+                `dropped_msgs=[${payload.droppedMessageIndices.join(',')}] ` +
+                `dropped_store=[${payload.droppedStoreIds.join(',')}]`
+            );
+          },
         });
 
         if (outcome.filtered) {
@@ -106,10 +120,18 @@ async function handle(req: http.IncomingMessage, res: http.ServerResponse): Prom
           outBody = Buffer.from(JSON.stringify(parsed), 'utf8');
           savedHeader = String(outcome.tokensSaved);
           storeRecalledHeader = String(outcome.storeRecalled ?? 0);
+          const droppedMsg =
+            outcome.droppedMessageIndices && outcome.droppedMessageIndices.length > 0
+              ? ` dropped_msgs=[${outcome.droppedMessageIndices.join(',')}]`
+              : '';
+          const droppedStore =
+            outcome.droppedStoreIds && outcome.droppedStoreIds.length > 0
+              ? ` dropped_store=${outcome.droppedStoreIds.length}`
+              : '';
           console.error(
             `[rootrouter-proxy] trimmed ${outcome.tokensBefore}->${outcome.tokensAfter} tokens ` +
               `(saved ${outcome.tokensSaved}; kept ${outcome.keptCandidates}/${outcome.totalCandidates}; ` +
-              `store recalled ${outcome.storeRecalled ?? 0})`
+              `store recalled ${outcome.storeRecalled ?? 0})${droppedMsg}${droppedStore}`
           );
         } else {
           // Still persisted turns even when below trim threshold.

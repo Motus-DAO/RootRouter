@@ -8,12 +8,20 @@ import {
   SelectionOptions,
   SelectionResult,
 } from './types';
+import {
+  annPrefilterCandidates,
+  DEFAULT_ANN_PREFETCH_K,
+  DEFAULT_ANN_THRESHOLD,
+} from './ann/hnswIndex';
 
 const DEFAULT_MMR_LAMBDA = 0.7;
 const DEFAULT_CHAMBER_BOOST = 0.15;
+const DEFAULT_GRAPH_BOOST = 0.12;
+const DEFAULT_GRAPH_SEED_K = 3;
+const DEFAULT_HUB_BOOST = 0.05;
+const DEFAULT_MAX_PER_COMMUNITY = 2;
 const DEFAULT_WINDOW_SIZE = 20;
 
-/** A candidate enriched with the data the selector needs. */
 interface ScoredCandidate {
   item: ContextItem;
   vector: Vector;
@@ -21,19 +29,10 @@ interface ScoredCandidate {
   relevance: number;
   recency: number;
   chamber: number;
-  /** relevance + boosts, before MMR redundancy penalty. */
+  graph: number;
   base: number;
 }
 
-/**
- * ContextSelector ranks candidate context against a query and returns the minimal
- * relevant slice that fits a token budget.
- *
- * Ranking is query-aware (cosine similarity is the primary signal) and uses Maximal
- * Marginal Relevance (MMR) so near-duplicate items don't all get selected. Chamber and
- * recency are optional additive boosts. It works from the very first item — chambers
- * are only used when a fitted vector space is supplied.
- */
 export class ContextSelector {
   private provider: EmbeddingProvider;
 
@@ -52,30 +51,62 @@ export class ContextSelector {
     const chamberBoost = options.chamberBoost ?? DEFAULT_CHAMBER_BOOST;
     const baseline = options.baseline ?? 'all';
     const windowSize = options.windowSize ?? DEFAULT_WINDOW_SIZE;
+    const hubBoost = options.hubBoost ?? DEFAULT_HUB_BOOST;
+    const graphSeedK = options.graphSeedK ?? DEFAULT_GRAPH_SEED_K;
+    const maxPerCommunity = options.maxPerCommunity ?? DEFAULT_MAX_PER_COMMUNITY;
+    const annThreshold = options.annThreshold ?? DEFAULT_ANN_THRESHOLD;
+    const annPrefetchK = options.annPrefetchK ?? DEFAULT_ANN_PREFETCH_K;
 
-    if (candidates.length === 0) {
-      return emptyResult();
-    }
+    const hasGraphNodes = candidates.some(
+      (c) => Array.isArray(c.metadata?.edges) && (c.metadata!.edges as string[]).length > 0
+    );
+    const graphBoost =
+      options.graphBoost !== undefined
+        ? options.graphBoost
+        : hasGraphNodes
+          ? DEFAULT_GRAPH_BOOST
+          : 0;
+
+    if (candidates.length === 0) return emptyResult();
 
     const queryVector = await this.provider.embed(query);
-    const scored = await this.scoreCandidates(
+    const { pool, annPrefilteredFrom } = await this.prepareCandidatePool(
       candidates,
+      queryVector,
+      annThreshold,
+      annPrefetchK
+    );
+
+    let scored = await this.scoreCandidates(
+      pool,
       queryVector,
       recencyBoost,
       chamberBoost,
       vectorSpace ?? null
     );
 
-    const { selected, scores, chamberBoosted } = this.runMmr(scored, queryVector, mmrLambda, options.tokenBudget);
+    const graphBoostedCount = applyGraphBoost(scored, pool, {
+      graphBoost,
+      graphSeedK,
+      hubBoost,
+    });
+
+    const { selected, scores, chamberBoosted } = this.runMmr(
+      scored,
+      mmrLambda,
+      options.tokenBudget,
+      maxPerCommunity
+    );
 
     const tokensOut = selected.reduce((s, c) => s + c.tokens, 0);
     const tokensIn = computeBaselineTokens(scored, baseline, windowSize);
     const tokensSaved = Math.max(0, tokensIn - tokensOut);
     const percentSaved = tokensIn > 0 ? (tokensSaved / tokensIn) * 100 : 0;
-    const droppedByBudget = scored.length - selected.length;
+    const selectedIds = new Set(selected.map((c) => c.item.id));
+    const droppedIds = scored.filter((c) => !selectedIds.has(c.item.id)).map((c) => c.item.id);
 
     return {
-      selected: selected.map(c => c.item),
+      selected: selected.map((c) => c.item),
       scores,
       tokensIn,
       tokensOut,
@@ -88,25 +119,33 @@ export class ContextSelector {
         tokensOut,
         percentSaved,
         chamberBoosted,
+        graphBoosted: graphBoostedCount,
         mmrLambda,
+        annPrefilteredFrom,
       }),
       breakdown: {
         candidates: scored.length,
         selected: selected.length,
-        droppedByBudget,
+        droppedByBudget: scored.length - selected.length,
         chamberBoosted,
+        graphBoosted: graphBoostedCount,
+        ...(annPrefilteredFrom !== undefined ? { annPrefilteredFrom } : {}),
       },
+      droppedIds,
     };
   }
 
-  private async scoreCandidates(
+  /** Embed all candidates; optionally ANN-prefilter when the pool is large. */
+  private async prepareCandidatePool(
     candidates: ContextItem[],
     queryVector: Vector,
-    recencyBoost: number,
-    chamberBoost: number,
-    vectorSpace: StructuredVectorSpace | null
-  ): Promise<ScoredCandidate[]> {
-    // Embed any candidates missing a vector, in one batch.
+    annThreshold: number,
+    annPrefetchK: number
+  ): Promise<{ pool: ContextItem[]; annPrefilteredFrom?: number }> {
+    if (annThreshold <= 0 || candidates.length <= annThreshold) {
+      return { pool: candidates };
+    }
+
     const missingIdx: number[] = [];
     const toEmbed: string[] = [];
     candidates.forEach((item, i) => {
@@ -116,21 +155,49 @@ export class ContextSelector {
       }
     });
     let embedded: Vector[] = [];
-    if (toEmbed.length > 0) {
-      embedded = await this.provider.embedBatch(toEmbed);
-    }
-    const vectors: Vector[] = candidates.map(c => c.vector ?? []);
+    if (toEmbed.length > 0) embedded = await this.provider.embedBatch(toEmbed);
+
+    const vectors: Vector[] = candidates.map((c) => c.vector ?? []);
     missingIdx.forEach((idx, k) => {
       vectors[idx] = embedded[k] ?? [];
     });
 
-    // Recency normalization across the candidate pool.
-    const timestamps = candidates.map(c => c.timestamp ?? 0);
+    const withVectors = candidates.map((c, i) => ({ id: c.id, vector: vectors[i] }));
+    const keepIds = annPrefilterCandidates(queryVector, withVectors, annThreshold, annPrefetchK);
+    if (!keepIds) return { pool: candidates };
+
+    const pool = candidates.filter((c) => keepIds.has(c.id));
+    return { pool, annPrefilteredFrom: candidates.length };
+  }
+
+  private async scoreCandidates(
+    candidates: ContextItem[],
+    queryVector: Vector,
+    recencyBoost: number,
+    chamberBoost: number,
+    vectorSpace: StructuredVectorSpace | null
+  ): Promise<ScoredCandidate[]> {
+    const missingIdx: number[] = [];
+    const toEmbed: string[] = [];
+    candidates.forEach((item, i) => {
+      if (!item.vector || item.vector.length === 0) {
+        missingIdx.push(i);
+        toEmbed.push(item.text);
+      }
+    });
+    let embedded: Vector[] = [];
+    if (toEmbed.length > 0) embedded = await this.provider.embedBatch(toEmbed);
+
+    const vectors: Vector[] = candidates.map((c) => c.vector ?? []);
+    missingIdx.forEach((idx, k) => {
+      vectors[idx] = embedded[k] ?? [];
+    });
+
+    const timestamps = candidates.map((c) => c.timestamp ?? 0);
     const minTs = Math.min(...timestamps);
     const maxTs = Math.max(...timestamps);
     const tsRange = maxTs - minTs;
 
-    // Chamber context for the query (only when fitted).
     const useChambers = !!(vectorSpace && vectorSpace.isFitted() && chamberBoost > 0);
     let adjacentChambers: Set<number> | null = null;
     if (useChambers) {
@@ -156,15 +223,15 @@ export class ContextSelector {
       }
 
       const base = relevance + recencyBoost * recency + chamberBoost * chamber;
-      return { item, vector, tokens, relevance, recency, chamber, base };
+      return { item, vector, tokens, relevance, recency, chamber, graph: 0, base };
     });
   }
 
   private runMmr(
     scored: ScoredCandidate[],
-    queryVector: Vector,
     mmrLambda: number,
-    tokenBudget: number
+    tokenBudget: number,
+    maxPerCommunity: number
   ): { selected: ScoredCandidate[]; scores: Record<string, ItemScore>; chamberBoosted: number } {
     const scores: Record<string, ItemScore> = {};
     for (const c of scored) {
@@ -173,6 +240,7 @@ export class ContextSelector {
         relevance: c.relevance,
         recency: c.recency,
         chamber: c.chamber,
+        graph: c.graph,
         combined: c.base,
         selected: false,
       };
@@ -180,6 +248,7 @@ export class ContextSelector {
 
     const remaining = new Set(scored.map((_, i) => i));
     const selected: ScoredCandidate[] = [];
+    const communityCounts = new Map<string, number>();
     let usedTokens = 0;
     let chamberBoosted = 0;
 
@@ -189,7 +258,6 @@ export class ContextSelector {
 
       for (const idx of remaining) {
         const cand = scored[idx];
-        // Redundancy: max similarity to anything already selected.
         let maxSim = 0;
         for (const sel of selected) {
           if (cand.vector.length === 0 || sel.vector.length === 0) continue;
@@ -207,10 +275,16 @@ export class ContextSelector {
       const chosen = scored[bestIdx];
       remaining.delete(bestIdx);
 
-      // Budget check: stop once adding would exceed the budget. Always allow at least
-      // one item so an oversized single item is still returned (truncation is caller's job).
+      const community = String(chosen.item.metadata?.community ?? '');
+      if (maxPerCommunity > 0 && community) {
+        const count = communityCounts.get(community) ?? 0;
+        if (count >= maxPerCommunity) {
+          scores[chosen.item.id].combined = bestScore;
+          continue;
+        }
+      }
+
       if (usedTokens + chosen.tokens > tokenBudget && selected.length > 0) {
-        // Skip this item but keep trying smaller ones still in remaining.
         scores[chosen.item.id].combined = bestScore;
         continue;
       }
@@ -220,10 +294,48 @@ export class ContextSelector {
       scores[chosen.item.id].combined = bestScore;
       scores[chosen.item.id].selected = true;
       if (chosen.chamber > 0) chamberBoosted++;
+      if (community) communityCounts.set(community, (communityCounts.get(community) ?? 0) + 1);
     }
 
     return { selected, scores, chamberBoosted };
   }
+}
+
+function applyGraphBoost(
+  scored: ScoredCandidate[],
+  candidates: ContextItem[],
+  opts: { graphBoost: number; graphSeedK: number; hubBoost: number }
+): number {
+  if (opts.graphBoost <= 0 && opts.hubBoost <= 0) return 0;
+
+  const idToIdx = new Map(candidates.map((c, i) => [c.id, i]));
+  const maxDeg = Math.max(1, ...candidates.map((c) => Number(c.metadata?.degree ?? 0)));
+  let boosted = 0;
+
+  for (const s of scored) {
+    const deg = Number(s.item.metadata?.degree ?? 0);
+    if (deg > 0 && opts.hubBoost > 0) {
+      const hub = opts.hubBoost * (deg / maxDeg);
+      s.base += hub;
+    }
+  }
+
+  if (opts.graphBoost > 0) {
+    const seeds = [...scored].sort((a, b) => b.relevance - a.relevance).slice(0, opts.graphSeedK);
+    for (const seed of seeds) {
+      const edges = seed.item.metadata?.edges as string[] | undefined;
+      if (!edges) continue;
+      for (const eid of edges) {
+        const idx = idToIdx.get(eid);
+        if (idx === undefined) continue;
+        if (scored[idx].graph === 0) boosted++;
+        scored[idx].graph += opts.graphBoost;
+        scored[idx].base += opts.graphBoost;
+      }
+    }
+  }
+
+  return boosted;
 }
 
 function clamp(x: number, lo: number, hi: number): number {
@@ -236,7 +348,6 @@ function computeBaselineTokens(
   windowSize: number
 ): number {
   if (baseline === 'window') {
-    // Most recent windowSize candidates by timestamp.
     const sorted = [...scored].sort(
       (a, b) => (b.item.timestamp ?? 0) - (a.item.timestamp ?? 0)
     );
@@ -252,14 +363,20 @@ function buildReasoning(p: {
   tokensOut: number;
   percentSaved: number;
   chamberBoosted: number;
+  graphBoosted: number;
   mmrLambda: number;
+  annPrefilteredFrom?: number;
 }): string {
   const parts = [
     `Selected ${p.selected}/${p.candidates} items (${p.tokensOut} tokens, budget ${p.tokenBudget}).`,
     `Saved ~${p.percentSaved.toFixed(1)}% vs baseline.`,
-    `MMR lambda ${p.mmrLambda.toFixed(2)} (relevance vs diversity).`,
+    `MMR lambda ${p.mmrLambda.toFixed(2)}.`,
   ];
-  if (p.chamberBoosted > 0) parts.push(`${p.chamberBoosted} items chamber-boosted.`);
+  if (p.annPrefilteredFrom !== undefined) {
+    parts.push(`ANN prefiltered from ${p.annPrefilteredFrom}.`);
+  }
+  if (p.chamberBoosted > 0) parts.push(`${p.chamberBoosted} chamber-boosted.`);
+  if (p.graphBoosted > 0) parts.push(`${p.graphBoosted} graph-neighbor boosted.`);
   return parts.join(' ');
 }
 
@@ -272,6 +389,7 @@ function emptyResult(): SelectionResult {
     tokensSaved: 0,
     percentSaved: 0,
     reasoning: 'No candidates provided.',
-    breakdown: { candidates: 0, selected: 0, droppedByBudget: 0, chamberBoosted: 0 },
+    breakdown: { candidates: 0, selected: 0, droppedByBudget: 0, chamberBoosted: 0, graphBoosted: 0 },
+    droppedIds: [],
   };
 }

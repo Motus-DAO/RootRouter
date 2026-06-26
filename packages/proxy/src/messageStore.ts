@@ -3,6 +3,15 @@ import type { ContextItem } from 'rootrouter';
 import type { ChatMessage } from './filter.js';
 import { messageText } from './filter.js';
 
+const FILE_PATH_RE =
+  /(?:[\w@.-]+\/)+[\w.-]+\.(?:ts|tsx|js|jsx|mjs|cjs|py|md|json|sol|rs|go)\b/g;
+
+/** Extract likely file paths mentioned in agent text (for turn→file bridging). */
+export function extractFilePaths(text: string): string[] {
+  const matches = text.match(FILE_PATH_RE) ?? [];
+  return [...new Set(matches)];
+}
+
 /** Stable id for a chat turn in the shared store (scoped per agent). */
 export function stableMessageId(agentId: string, role: string, content: string): string {
   return createHash('sha256').update(`${agentId}\0${role}\0${content}`).digest('hex').slice(0, 24);
@@ -21,13 +30,19 @@ export function messagesToStoreItems(
     if (typeof m.content !== 'string') continue;
     const text = messageText(m.content);
     if (!text.trim()) continue;
+    const filesMentioned = extractFilePaths(text);
     items.push({
       id: stableMessageId(agentId, m.role, text),
       text,
       kind: 'message',
       agentId,
       timestamp: now + i,
-      metadata: { role: m.role, source: 'proxy', messageIndex: i },
+      metadata: {
+        role: m.role,
+        source: 'proxy',
+        messageIndex: i,
+        ...(filesMentioned.length > 0 ? { filesMentioned } : {}),
+      },
     });
   }
   return items;

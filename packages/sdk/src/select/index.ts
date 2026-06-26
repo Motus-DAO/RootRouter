@@ -20,6 +20,14 @@ export type { ContextEngineOptions } from './contextEngine';
 export { TfIdfEmbeddingProvider } from './embedding/tfidfProvider';
 export { ApiEmbeddingProvider } from './embedding/apiProvider';
 export type { ApiEmbeddingConfig } from './embedding/apiProvider';
+export { CachedEmbeddingProvider } from './embedding/cachedProvider';
+export type { CachedEmbeddingOptions } from './embedding/cachedProvider';
+export { LocalOnnxEmbeddingProvider } from './embedding/onnxProvider';
+export type { LocalEmbeddingModel } from './embedding/onnxProvider';
+export { buildEmbeddingProviderFromEnv } from './embedding/buildProvider';
+export type { BuildProviderOptions } from './embedding/buildProvider';
+export { contentHash } from './embedding/contentHash';
+export { HnswIndex, annPrefilterCandidates, DEFAULT_ANN_THRESHOLD, DEFAULT_ANN_PREFETCH_K } from './ann/hnswIndex';
 
 export { InMemoryContextStore } from './store/inMemoryStore';
 export type { InMemoryStoreOptions } from './store/inMemoryStore';

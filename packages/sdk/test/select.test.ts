@@ -128,14 +128,92 @@ async function main() {
   }
 
   // ═══════════════════════════════════════
-  console.log('\n=== ContextEngine: maxItems eviction ===');
+  console.log('\n=== ContextEngine: maxItems eviction (LRU by lastSelectedAt) ===');
   // ═══════════════════════════════════════
   {
     const engine = new ContextEngine({ store: new InMemoryContextStore({ maxItems: 3 }) });
-    for (let i = 0; i < 6; i++) engine.record([item(`e${i}`, `evict test item ${i}`)]);
+    for (let i = 0; i < 4; i++) {
+      engine.record([item(`e${i}`, `evict test item ${i}`, { timestamp: i * 1000 })]);
+    }
+    await engine.select('evict test item 1', { tokenBudget: 10_000 });
+    engine.record([item('e4', 'evict test item 4', { timestamp: 5000 })]);
     assert(engine.stats().items === 3, 'store capped at maxItems');
-    assert(engine.getStore().get('e0') === undefined, 'oldest item evicted');
-    assert(engine.getStore().get('e5') !== undefined, 'newest item retained');
+    assert(engine.getStore().get('e1') !== undefined, 'recently selected item retained');
+    assert(engine.getStore().get('e0') === undefined, 'never-selected item evicted first');
+  }
+
+  // ═══════════════════════════════════════
+  console.log('\n=== Embedding cache avoids duplicate embed calls ===');
+  // ═══════════════════════════════════════
+  {
+    const { CachedEmbeddingProvider, TfIdfEmbeddingProvider } = await import('../src/select');
+    let calls = 0;
+    const inner = new TfIdfEmbeddingProvider();
+    const origEmbed = inner.embed.bind(inner);
+    const origBatch = inner.embedBatch.bind(inner);
+    inner.embed = async (text: string) => {
+      calls += 1;
+      return origEmbed(text);
+    };
+    inner.embedBatch = async (texts: string[]) => {
+      calls += texts.length;
+      return origBatch(texts);
+    };
+    const cached = new CachedEmbeddingProvider(inner);
+    const text = 'cache me once';
+    await cached.embed(text);
+    await cached.embed(text);
+    await cached.embedBatch([text, text, 'new text']);
+    assert(calls === 2, 'cache hits skip provider for repeated content');
+    assert(cached.cacheSize() === 2, 'two unique hashes cached');
+  }
+
+  // ═══════════════════════════════════════
+  console.log('\n=== ANN prefilter on large pools ===');
+  // ═══════════════════════════════════════
+  {
+    const items: ContextItem[] = [];
+    for (let i = 0; i < 600; i++) {
+      items.push(
+        item(
+          `big${i}`,
+          `document ${i} about ${i % 2 === 0 ? 'database sql queries' : 'cooking recipes food'}`
+        )
+      );
+    }
+    const res = await selectContext({
+      query: 'database sql queries optimization',
+      items,
+      tokenBudget: 5000,
+      options: { mmrLambda: 1, annThreshold: 500, annPrefetchK: 100 },
+    });
+    assert(res.breakdown.annPrefilteredFrom === 600, 'ANN prefilter applied');
+    assert(res.selected.length > 0, 'ANN pool still yields selections');
+    const dbHits = res.selected.filter((s) => s.text.includes('database')).length;
+    assert(dbHits > 0, 'ANN prefilter keeps relevant items');
+  }
+
+  // ═══════════════════════════════════════
+  console.log('\n=== Window baseline tokensSaved ===');
+  // ═══════════════════════════════════════
+  {
+    const items: ContextItem[] = [];
+    for (let i = 0; i < 30; i++) {
+      items.push(item(`w${i}`, `window baseline item ${i}`, { timestamp: i }));
+    }
+    const allBaseline = await selectContext({
+      query: 'window baseline',
+      items,
+      tokenBudget: 50,
+      options: { baseline: 'all', mmrLambda: 1 },
+    });
+    const windowBaseline = await selectContext({
+      query: 'window baseline',
+      items,
+      tokenBudget: 50,
+      options: { baseline: 'window', windowSize: 5, mmrLambda: 1 },
+    });
+    assert(windowBaseline.tokensIn < allBaseline.tokensIn, 'window baseline is smaller than all');
   }
 
   // ═══════════════════════════════════════

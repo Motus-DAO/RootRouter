@@ -55,9 +55,27 @@ export class InMemoryContextStore implements ContextStore {
   protected evict(): void {
     if (this.maxItems <= 0) return;
     while (this.items.size > this.maxItems) {
-      const oldestKey = this.items.keys().next().value as string | undefined;
-      if (oldestKey === undefined) break;
-      this.items.delete(oldestKey);
+      let evictKey: string | undefined;
+      let evictScore = Infinity;
+      for (const [key, item] of this.items) {
+        const score = item.lastSelectedAt ?? item.timestamp ?? 0;
+        if (score < evictScore) {
+          evictScore = score;
+          evictKey = key;
+        }
+      }
+      if (evictKey === undefined) break;
+      this.items.delete(evictKey);
     }
+  }
+
+  /** Mark items as recently selected (for LRU eviction). */
+  touchSelected(ids: string[]): void {
+    const now = Date.now();
+    for (const id of ids) {
+      const item = this.items.get(id);
+      if (item) this.items.set(id, { ...item, lastSelectedAt: now });
+    }
+    this.evict();
   }
 }

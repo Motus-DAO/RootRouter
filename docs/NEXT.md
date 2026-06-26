@@ -134,29 +134,29 @@ Only RootRouter unifies all three under one `ContextEngine` store and one select
 
 ### 2.1 `RepoGraph` module (`packages/sdk/src/repo/`)
 
-- [ ] `indexRepo(rootPath, options)` — walk repo, chunk files, extract edges.
-- [ ] **MVP edges:** `imports` (TS/JS/Python import parsing), `same_directory`.
-- [ ] **MVP nodes:** file chunks as `ContextItem` with `metadata: { path, language, edges[], community?, degree? }`.
-- [ ] Communities: directory-based or connected components on import graph (Leiden later if needed).
-- [ ] Hub detection: degree centrality → `metadata.degree` for god-node boost.
-- [ ] Security: path containment (jail to repo root), max file size, ignore `node_modules`/`.git`.
+- [x] `indexRepo(rootPath, options)` — walk repo, chunk files, extract edges.
+- [x] **MVP edges:** `imports` (TS/JS/Python import parsing), `same_directory`.
+- [x] **MVP nodes:** file chunks as `ContextItem` with `metadata: { path, language, edges[], community?, degree? }`.
+- [x] Communities: directory-based (Leiden later if needed).
+- [x] Hub detection: degree centrality → `metadata.degree` for god-node boost.
+- [x] Security: path containment (jail to repo root), max file size, ignore `node_modules`/`.git`.
 
 ### 2.2 Ingest surfaces
 
-- [ ] CLI: `rootrouter index ./repo` (or `npx rootrouter index`).
-- [ ] MCP tool: `index_repo` → upsert into shared store.
-- [ ] Proxy env: `ROOTROUTER_REPO_PATH` → auto-index on startup (optional).
+- [x] CLI: `rootrouter index ./repo` (or `npm run index -w rootrouter -- ./path`).
+- [x] MCP tool: `index_repo` → upsert into shared store.
+- [x] Proxy env: `ROOTROUTER_REPO_PATH` → auto-index on startup (optional).
 
 ### 2.3 `graphBoost` in `ContextSelector`
 
-- [ ] Seed: top-k items by query similarity.
-- [ ] Expand: 1-hop neighbors via `metadata.edges`.
-- [ ] Boost: hub nodes + expanded neighbors (same pattern as `chamberBoost`).
-- [ ] Community cap: prefer at most N items per `metadata.community` in MMR pass.
+- [x] Seed: top-k items by query similarity.
+- [x] Expand: 1-hop neighbors via `metadata.edges`.
+- [x] Boost: hub nodes + expanded neighbors (same pattern as `chamberBoost`).
+- [x] Community cap: prefer at most N items per `metadata.community` in MMR pass.
 
 ### 2.4 Bridge runtime ↔ repo (RootRouter-only)
 
-- [ ] When proxy records a turn, tag `metadata.filesMentioned` if paths appear in text.
+- [x] When proxy records a turn, tag `metadata.filesMentioned` if paths appear in text.
 - [ ] Strengthen `turn → file` edges in store metadata over time.
 - [ ] Optional: chamber id from `InteractionGraph` boosts repo nodes in same chamber region.
 
@@ -175,19 +175,19 @@ Only RootRouter unifies all three under one `ContextEngine` store and one select
 
 ### 3.1 Embeddings
 
-- [ ] Embedding cache (content-hash keyed) in `ContextEngine` / proxy.
-- [ ] Optional local model provider (ONNX `bge-small` / MiniLM) behind `EmbeddingProvider`.
-- [ ] Wire `EMBEDDING_API_KEY` in proxy (parity with MCP).
+- [x] Embedding cache (content-hash keyed) in `ContextEngine` / proxy.
+- [x] Optional local model provider (ONNX `bge-small` / MiniLM) behind `EmbeddingProvider`.
+- [x] Wire `EMBEDDING_API_KEY` in proxy (parity with MCP).
 
 ### 3.2 Indexing
 
-- [ ] ANN index (HNSW) when `store.size > N` (e.g. 500).
-- [ ] Eviction: LRU by last-selected timestamp beyond `maxItems`.
+- [x] ANN index (HNSW) when `store.size > N` (e.g. 500).
+- [x] Eviction: LRU by last-selected timestamp beyond `maxItems`.
 
 ### 3.3 Honest metrics
 
-- [ ] Recall proxy: log dropped message ids; optional thumbs-down hook.
-- [ ] Realistic savings baseline (window of last N turns, not lifetime store).
+- [x] Recall proxy: log dropped message ids; optional thumbs-down hook.
+- [x] Realistic savings baseline (window of last N turns, not lifetime store).
 
 ---
 
@@ -222,7 +222,7 @@ Only RootRouter unifies all three under one `ContextEngine` store and one select
 |----------|-----------|-----------------|
 | **P0** | Stateful proxy (Phase 1) | Highest — zero agent changes |
 | **P1** | Embedding cache + proxy env parity | Better relevance |
-| **P2** | Native RepoGraph + graphBoost (Phase 2) | Coding-agent quality |
+| **P2** | Native RepoGraph + graphBoost (Phase 2) | Coding-agent quality — **done (MVP)** |
 | **P3** | ANN index + recall metrics (Phase 3) | Scale + trust |
 | **P4** | `rootrouter init` + publish (Phase 4) | Distribution |
 

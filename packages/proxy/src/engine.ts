@@ -3,8 +3,8 @@ import * as path from 'path';
 import {
   ContextEngine,
   FileContextStore,
-  ApiEmbeddingProvider,
-  type EmbeddingProvider,
+  buildEmbeddingProviderFromEnv,
+  indexRepo,
 } from 'rootrouter';
 
 let engine: ContextEngine | null = null;
@@ -13,17 +13,6 @@ export function resolveStorePath(): string {
   const fromEnv = process.env.ROOTROUTER_STORE_PATH;
   if (fromEnv?.trim()) return fromEnv;
   return path.join(os.homedir(), '.rootrouter', 'store.json');
-}
-
-function buildProvider(): EmbeddingProvider | undefined {
-  const apiKey = process.env.EMBEDDING_API_KEY;
-  if (!apiKey) return undefined;
-  return new ApiEmbeddingProvider({
-    embeddingApiKey: apiKey,
-    embeddingApiUrl: process.env.EMBEDDING_API_URL ?? 'https://api.openai.com/v1/embeddings',
-    embeddingModel: process.env.EMBEDDING_MODEL ?? 'text-embedding-3-small',
-    embeddingDimension: Number(process.env.EMBEDDING_DIMENSION ?? 128),
-  });
 }
 
 /** Shared ContextEngine for the proxy process (file-backed, survives restarts). */
@@ -35,7 +24,7 @@ export function getEngine(): ContextEngine {
         filePath: resolveStorePath(),
         maxItems: maxItems > 0 ? maxItems : undefined,
       }),
-      provider: buildProvider(),
+      provider: buildEmbeddingProviderFromEnv(),
       useChambers: (process.env.ROOTROUTER_USE_CHAMBERS ?? 'false').toLowerCase() === 'true',
     });
   }
@@ -43,5 +32,24 @@ export function getEngine(): ContextEngine {
 }
 
 export async function initEngine(): Promise<void> {
-  await getEngine().load();
+  const eng = getEngine();
+  await eng.load();
+
+  const repoPath = process.env.ROOTROUTER_REPO_PATH?.trim();
+  if (repoPath) {
+    try {
+      const result = indexRepo({ rootPath: repoPath, agentId: 'repo' });
+      eng.record(result.items);
+      await eng.save();
+      console.error(
+        `[rootrouter-proxy] indexed repo ${result.stats.rootPath}: ` +
+          `${result.stats.chunksIndexed} chunks, ${result.stats.edgesCreated} edges`
+      );
+    } catch (err) {
+      console.error(
+        '[rootrouter-proxy] repo index skipped:',
+        err instanceof Error ? err.message : String(err)
+      );
+    }
+  }
 }

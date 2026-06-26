@@ -82,6 +82,10 @@ Set `ROOTROUTER_UPSTREAM_ORIGIN` to the provider origin and use the provider's n
 | `ROOTROUTER_MIN_TOKENS_TO_FILTER` | `6000` | Only trim when the prompt exceeds this many tokens |
 | `ROOTROUTER_MMR_LAMBDA` | `0.7` | Relevance vs diversity trade-off |
 | `EMBEDDING_API_KEY` | unset | Use real embeddings instead of local TF-IDF |
+| `EMBEDDING_PROVIDER` | `tfidf` (or `api` when key set) | `tfidf`, `api`, or `local` (ONNX via `@xenova/transformers`) |
+| `EMBEDDING_LOCAL_MODEL` | `minilm` | `minilm` or `bge-small` when `EMBEDDING_PROVIDER=local` |
+| `ROOTROUTER_BASELINE_WINDOW` | `20` | Window size for realistic savings baseline |
+| `ROOTROUTER_REPO_PATH` | unset | Auto-index this repo into the store on proxy startup |
 
 ## Per-request overrides (headers)
 
@@ -90,6 +94,7 @@ Set `ROOTROUTER_UPSTREAM_ORIGIN` to the provider origin and use the provider's n
 | `x-rootrouter-disable: true` | Skip trimming for this request |
 | `x-rootrouter-budget: <n>` | Override the context token budget for this request |
 | `x-rootrouter-agent-id: <id>` | Scope store recall/recording per agent (default `default`) |
+| `x-rootrouter-recall-feedback: down` | Thumbs-down hook: log dropped turns as bad recall signal |
 
 ## Response headers
 
