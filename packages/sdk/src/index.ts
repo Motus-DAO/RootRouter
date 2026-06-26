@@ -99,6 +99,8 @@ export {
   buildEmbeddingProviderFromEnv,
   InMemoryContextStore,
   FileContextStore,
+  buildSelectionSnapshot,
+  attachSelectionSnapshot,
 } from './select';
 export type {
   ContextItem,
@@ -116,6 +118,9 @@ export type {
   BuildProviderOptions,
   InMemoryStoreOptions,
   FileStoreOptions,
+  SelectionSnapshot,
+  SelectionStats,
+  RepoGraphSnapshot,
 } from './select';
 
 // RepoGraph — native repository indexer

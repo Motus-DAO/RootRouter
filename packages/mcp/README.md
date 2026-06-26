@@ -40,13 +40,22 @@ This produces `packages/mcp/dist/server.js` (an executable `rootrouter-mcp` bin)
 | `ROOTROUTER_MAX_ITEMS` | unbounded | Cap stored items (oldest evicted) |
 | `ROOTROUTER_USE_CHAMBERS` | `false` | Enable chamber-based relevance boosting |
 | `EMBEDDING_API_KEY` | unset | If set, use a real embedding API instead of local TF-IDF |
-| `EMBEDDING_API_URL` | `https://api.openai.com/v1/embeddings` | Embedding endpoint |
-| `EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding model |
-| `EMBEDDING_DIMENSION` | `128` | Embedding dimension |
+| `EMBEDDING_PROVIDER` | `tfidf` (or `api` when key set) | `tfidf`, `api`, or `local` |
+| `EMBEDDING_LOCAL_MODEL` | `minilm` | `minilm` or `bge-small` when `EMBEDDING_PROVIDER=local` |
 
 With no API key it runs fully local (TF-IDF), no network calls.
 
-## Registration
+## CLI setup (recommended)
+
+From any project directory:
+
+```bash
+npx rootrouter init codex    # appends ~/.codex/config.toml
+npx rootrouter init cursor   # writes .cursor/mcp.json
+npx rootrouter index ./my-repo
+```
+
+## Registration (manual)
 
 ### Cursor (`.cursor/mcp.json`)
 

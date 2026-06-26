@@ -13,7 +13,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { RootRouter, estimateTokens } from '../src';
+import { RootRouter, estimateTokens, attachSelectionSnapshot } from '../src';
 
 const c = {
   reset: process.stdout.isTTY !== false ? '\x1b[0m' : '',
@@ -339,6 +339,7 @@ async function main() {
     try {
       const runId = `benchmark-${Date.now()}`;
       const payload = router.getSnapshotForExport(runId, 'benchmark-agent');
+      await attachSelectionSnapshot(payload);
       const res = await fetch(`${dashboardUrl}/api/snapshots`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

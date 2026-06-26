@@ -7,7 +7,7 @@ import GetStartedSection from '../components/GetStartedSection';
 export const metadata = {
   title: 'RootRouter — Algebraic Agent Infrastructure',
   description:
-    'Cut your agent\'s LLM costs 40–70% with root-pair telemetry, interaction graphs, and symmetry-aware context filtering. Verifiable on-chain analytics on Celo.',
+    'Algebraic agent infrastructure for AI swarms — context selection, repo graph, and on-chain telemetry on Celo. Early beta.',
 };
 
 const valueProps = [
@@ -42,7 +42,7 @@ const valueProps = [
 ];
 
 const stats = [
-  { value: '40–70%', label: 'Typical cost savings' },
+  { value: 'Up to ~73%', label: 'Demo benchmark savings (varies)' },
   { value: '~49%', label: 'Benchmark run (50 queries)' },
   { value: '19+', label: 'Chambers auto-discovered' },
   { value: 'Celo', label: 'On-chain telemetry' },
@@ -92,7 +92,7 @@ export default function HomePage() {
                 maxWidth: '28rem',
               }}
             >
-              Cut agent LLM costs 40–70% with root-pair telemetry, interaction graphs, and symmetry-aware context filtering. Verifiable on Celo.
+              Reduce agent LLM context cost with root-pair telemetry, interaction graphs, and symmetry-aware filtering. Demo benchmarks vary by workload. Verifiable on Celo. Early beta.
             </p>
             <Link href="/dashboard" className="landing-cta-primary">
               Open Dashboard

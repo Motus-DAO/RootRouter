@@ -7,7 +7,7 @@
  * Run: npm run demo:basic
  */
 
-import { RootRouter } from '../src';
+import { RootRouter, attachSelectionSnapshot } from '../src';
 
 // ─── ANSI Colors (graceful fallback) ───
 const USE_COLOR = process.stdout.isTTY !== false;
@@ -265,6 +265,7 @@ async function main() {
     try {
       const runId = `basic-${Date.now()}`;
       const payload = router.getSnapshotForExport(runId, 'demo-agent');
+      await attachSelectionSnapshot(payload);
       const res = await fetch(`${dashboardUrl}/api/snapshots`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

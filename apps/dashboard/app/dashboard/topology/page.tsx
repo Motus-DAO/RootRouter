@@ -51,6 +51,20 @@ type SnapshotData = {
     };
     rootDirections?: Array<{ index: number; eigenvalue: number; varianceRatio: number }>;
     vectorSpaceSummary?: { directionsFound: number; varianceExplained: number; activeChambers: number };
+    selectionStats?: {
+      items: number;
+      selections: number;
+      totalTokensSaved: number;
+      chambersEnabled: boolean;
+      chambersFitted: boolean;
+    };
+    repoGraph?: {
+      nodeCount: number;
+      edgeCount: number;
+      communities: Array<{ community: string; count: number }>;
+      nodes: Array<{ id: string; path?: string; community?: string; degree?: number }>;
+      edges: Array<{ source: string; target: string }>;
+    };
   };
   createdAt: number;
 };
@@ -163,6 +177,8 @@ function SnapshotView({ data }: { data: SnapshotData }) {
         }));
   const edgesForDisplay = rawAgentGraph.edges ?? [];
   const interactionGraph = s.interactionGraph ?? { nodes: [], edges: [] };
+  const selectionStats = s.selectionStats;
+  const repoGraph = s.repoGraph;
   const vsStats = summary.vectorSpaceStats ?? s.vectorSpaceSummary;
 
   const agentGraphData = useMemo(
@@ -179,6 +195,20 @@ function SnapshotView({ data }: { data: SnapshotData }) {
     }),
     [interactionGraph.nodes, interactionGraph.edges]
   );
+  const repoGraphData = useMemo(() => {
+    if (!repoGraph?.nodes?.length) return { nodes: [] as { id: string }[], links: [] as { source: string; target: string }[] };
+    return {
+      nodes: repoGraph.nodes.map((n) => ({ id: n.path ?? n.id.slice(0, 12) })),
+      links: repoGraph.edges.map((e) => {
+        const src = repoGraph.nodes.find((n) => n.id === e.source);
+        const tgt = repoGraph.nodes.find((n) => n.id === e.target);
+        return {
+          source: src?.path ?? e.source.slice(0, 12),
+          target: tgt?.path ?? e.target.slice(0, 12),
+        };
+      }),
+    };
+  }, [repoGraph]);
 
   const chartData = {
     labels: chambers.sort((a, b) => a.avgRootNorm - b.avgRootNorm).map((c) => `#${c.id}`),
@@ -246,6 +276,35 @@ function SnapshotView({ data }: { data: SnapshotData }) {
         )}
       </section>
 
+      {selectionStats && (
+        <section
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+            gap: '0.75rem',
+          }}
+        >
+          <div className="holo-card-prism" style={{ padding: '0.75rem 1rem', position: 'relative', zIndex: 1 }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--prism-text-muted)' }}>Context store items</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', color: 'var(--prism-amber)' }}>
+              {selectionStats.items.toLocaleString()}
+            </div>
+          </div>
+          <div className="holo-card-prism" style={{ padding: '0.75rem 1rem', position: 'relative', zIndex: 1 }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--prism-text-muted)' }}>Selections served</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', color: 'var(--prism-amber)' }}>
+              {selectionStats.selections.toLocaleString()}
+            </div>
+          </div>
+          <div className="holo-card-prism" style={{ padding: '0.75rem 1rem', position: 'relative', zIndex: 1 }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--prism-text-muted)' }}>Selection tokens saved</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', color: 'var(--prism-amber)' }}>
+              {selectionStats.totalTokensSaved.toLocaleString()}
+            </div>
+          </div>
+        </section>
+      )}
+
       {chambers.length > 0 && (
         <div
           className="holo-card-prism"
@@ -276,6 +335,53 @@ function SnapshotView({ data }: { data: SnapshotData }) {
             />
           </div>
         </div>
+      )}
+
+      {repoGraph && repoGraph.nodeCount > 0 && (
+        <>
+          <div
+            className="holo-card-prism"
+            style={{ padding: '1rem 1.2rem', height: '260px', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}
+          >
+            <div style={{ fontSize: '0.9rem', marginBottom: '0.6rem', color: 'var(--prism-text-muted)' }}>
+              RepoGraph communities (directory groups)
+            </div>
+            <div style={{ flex: 1 }}>
+              <Bar
+                data={{
+                  labels: (repoGraph.communities ?? []).slice(0, 12).map((c) => c.community.split('/').pop() ?? c.community),
+                  datasets: [
+                    {
+                      label: 'Chunks',
+                      data: (repoGraph.communities ?? []).slice(0, 12).map((c) => c.count),
+                      backgroundColor: getCssVar('--prism-amber', '#ffb703'),
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { display: false } },
+                  scales: {
+                    x: { ticks: { color: 'rgba(255,255,255,0.6)', font: { size: 9 }, maxRotation: 45 }, grid: { display: false } },
+                    y: { ticks: { color: 'rgba(255,255,255,0.6)', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.06)' } },
+                  },
+                }}
+              />
+            </div>
+          </div>
+          <div className="holo-card-prism" style={{ padding: '1rem 1.2rem', position: 'relative', zIndex: 1 }}>
+            <div style={{ fontSize: '0.9rem', marginBottom: '0.6rem', color: 'var(--prism-text-muted)' }}>
+              RepoGraph overlay (import/directory edges) — {repoGraph.nodeCount} nodes, {repoGraph.edgeCount} edges
+            </div>
+            <ForceGraph2DWrapper
+              nodes={repoGraphData.nodes}
+              links={repoGraphData.links}
+              nodeLabel={(n) => String(n.id)}
+              height={340}
+            />
+          </div>
+        </>
       )}
 
       <div

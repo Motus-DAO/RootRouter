@@ -1,0 +1,38 @@
+{
+  "baseline": {
+    "raw_input_tokens": 84194,
+    "filtered_context_tokens": 84194,
+    "effective_billed_tokens": 84194,
+    "output_tokens": 8617,
+    "cost": 1.9091849999999997
+  },
+  "rootrouter": {
+    "raw_input_tokens": 84194,
+    "filtered_context_tokens": 47257,
+    "effective_billed_tokens": 47877,
+    "output_tokens": 8617,
+    "cost": 0.5101019999999999,
+    "tokens_saved": 36317,
+    "tier_counts": {
+      "fast": {
+        "count": 0,
+        "tokens": 0,
+        "cost": 0
+      },
+      "balanced": {
+        "count": 40,
+        "tokens": 43606,
+        "cost": 0.21358200000000005
+      },
+      "powerful": {
+        "count": 10,
+        "tokens": 12888,
+        "cost": 0.29652
+      }
+    }
+  },
+  "cost_savings_pct": 73.28168825965005,
+  "queries_count": 50,
+  "quick": false,
+  "timestamp": "2026-06-26T21:08:13.395Z"
+}
