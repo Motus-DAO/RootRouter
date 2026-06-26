@@ -88,6 +88,35 @@ Any client that supports stdio MCP servers can point its `command`/`args` at the
 { "command": "rootrouter-mcp", "args": [] }
 ```
 
+## Use in this repo (already wired)
+
+This monorepo ships a ready-to-use config at [`.cursor/mcp.json`](../../.cursor/mcp.json):
+
+```json
+{
+  "mcpServers": {
+    "rootrouter": {
+      "command": "node",
+      "args": ["/Users/main/RootRouter/packages/mcp/dist/server.js"],
+      "env": {
+        "ROOTROUTER_STORE_PATH": "/Users/main/RootRouter/.rootrouter/store.json"
+      }
+    }
+  }
+}
+```
+
+Steps:
+
+1. Build once: `npm run mcp:build` (from the repo root).
+2. Reload Cursor, or toggle the server in Settings -> MCP, so it picks up `.cursor/mcp.json`. You should see `rootrouter` with `record_context`, `select_context`, and `stats`.
+3. The local context store is written to `.rootrouter/store.json` (gitignored).
+
+Notes:
+
+- The paths in `.cursor/mcp.json` are absolute (Cursor requires this). If you move or clone the repo elsewhere, update them.
+- Runs fully local (TF-IDF) with no API key. For stronger embeddings, add `EMBEDDING_API_KEY` (and optionally `EMBEDDING_API_URL` / `EMBEDDING_MODEL`) to the `env` block; set `ROOTROUTER_USE_CHAMBERS=true` to enable chamber boosting.
+
 ## Typical agent loop
 
 1. On new files/turns/tool output: call `record_context` with the chunks.
