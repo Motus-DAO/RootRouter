@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: { default: 'RootRouter', template: '%s — RootRouter' },
-  description: 'Algebraic Agent Infrastructure for AI Swarms. Telemetry and dashboard on Celo.',
+  description: 'Agent context and operations harness — Feng Shui, MCP, proxy. Early beta.',
 };
 
 type RootLayoutProps = {

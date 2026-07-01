@@ -15,7 +15,7 @@ const playbooks = [
     layer: 'Layer 1',
     title: 'RootRouter',
     subtitle: 'Context routing',
-    desc: 'What goes in the prompt. Proxy token savings, MCP repo selection, chambers, and swarm topology — not a network router.',
+    desc: 'What goes in the prompt. Proxy token savings, MCP repo selection, and auditable selection logs — not a network router.',
     href: '/SKILL.md',
     cta: 'Read SKILL.md',
   },
