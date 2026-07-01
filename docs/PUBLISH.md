@@ -74,6 +74,12 @@ npx rootrouter@beta init codex    # appends ~/.codex/config.toml
 
 Optional proxy env snippet is printed after `init cursor`.
 
+## Dashboard (Vercel — not an npm package)
+
+The dashboard lives in `apps/dashboard` (`@rootrouter/dashboard`, **private**). It is **not** published with `rootrouter`, `@rootrouter/proxy`, or `@rootrouter/mcp`.
+
+Vercel **Root Directory:** `apps/dashboard`. See [`apps/dashboard/README.md`](../apps/dashboard/README.md).
+
 ## Dashboard selection stats
 
 Push context-engine stats to the topology dashboard:
