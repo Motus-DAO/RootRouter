@@ -1,9 +1,9 @@
 /**
- * Landing page evidence — update here when NVIDIA NIM (or other) real-API benchmarks ship.
- * Keep methods honest: audited | production | simulated | pending
+ * Landing page evidence — synced from benchmarks/results/nim-latest.json after live runs.
+ * Run: npm run demo:benchmark-live -- --queries 12
  */
 
-export type EvidenceMethod = 'audited' | 'production' | 'simulated' | 'pending';
+export type EvidenceMethod = 'audited' | 'production' | 'simulated' | 'live-api';
 
 export interface EvidenceMetric {
   id: string;
@@ -26,6 +26,17 @@ export const evidenceMetrics: EvidenceMetric[] = [
     footnote: 'Warm follow-ups should skip MCP. See insight 001 & selections.jsonl audit.',
   },
   {
+    id: 'nim-live-api',
+    path: 'NVIDIA NIM · live API',
+    value: '1.6%',
+    label: 'chat context saved (12-turn)',
+    detail:
+      'Real completions — nvidia/nemotron-3-ultra-550b-a55b, 12 multi-turn queries, integrate.api.nvidia.com (2026-07-01)',
+    method: 'live-api',
+    footnote:
+      'Measures chat-history filtering, not repo MCP. Savings grow as sessions lengthen. Reproduce: npm run demo:benchmark-live',
+  },
+  {
     id: 'openclaw-proxy',
     path: 'OpenClaw proxy · Shamy',
     value: 'Live',
@@ -36,27 +47,26 @@ export const evidenceMetrics: EvidenceMetric[] = [
   },
   {
     id: 'sdk-benchmark',
-    path: 'SDK benchmark',
+    path: 'SDK benchmark · offline',
     value: '~49%',
     label: 'simulated demo savings',
-    detail: '50-query run — TF-IDF embeddings + simulated LLM (npm run demo:benchmark -- --seed 42)',
+    detail: '50-query TF-IDF + simulated LLM (npm run demo:benchmark -- --seed 42) — not live API',
     method: 'simulated',
-    footnote: 'Not a live API benchmark. Real completions benchmark pending.',
   },
 ];
 
-/** Flip to `in_progress` / `complete` when NIM key is ready and benchmark runs. */
 export const realApiBenchmark = {
   provider: 'NVIDIA NIM',
-  status: 'pending' as 'pending' | 'in_progress' | 'complete',
-  headline: 'Real API benchmark coming',
+  status: 'complete' as 'pending' | 'in_progress' | 'complete',
+  headline: 'Live API benchmark published',
   description:
-    'We will publish reproducible savings with live completions (NVIDIA NIM free tier) to replace headline reliance on the simulated SDK demo.',
+    '12-query session on Nemotron 3 Ultra via NVIDIA NIM — 1.6% estimated context reduction on multi-turn chat. Repo MCP cold slice (~95%) remains the strongest audited path.',
+  resultUrl: 'https://github.com/RootRouter/RootRouter/blob/main/benchmarks/results/nim-latest.json',
 };
 
 export const methodLabels: Record<EvidenceMethod, string> = {
   audited: 'Audited',
   production: 'Production',
   simulated: 'Simulated',
-  pending: 'Pending',
+  'live-api': 'Live API',
 };

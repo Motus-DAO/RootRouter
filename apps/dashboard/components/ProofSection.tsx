@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import {
   evidenceMetrics,
   methodLabels,
@@ -8,9 +7,9 @@ import {
 
 const methodColors: Record<EvidenceMethod, { bg: string; border: string; text: string }> = {
   audited: { bg: 'rgba(0, 255, 204, 0.12)', border: 'rgba(0, 255, 204, 0.35)', text: 'var(--prism-cyan)' },
-  production: { bg: 'rgba(120, 200, 120, 0.12)', border: 'rgba(120, 200, 120, 0.35)', text: '#8fd4a0' },
+  production: { bg: 'rgba(120, 200, 120, 0.12)', border: 'rgba(0, 200, 120, 0.35)', text: '#8fd4a0' },
   simulated: { bg: 'rgba(255, 180, 80, 0.12)', border: 'rgba(255, 180, 80, 0.35)', text: 'var(--prism-amber)' },
-  pending: { bg: 'rgba(160, 160, 180, 0.1)', border: 'rgba(160, 160, 180, 0.25)', text: 'var(--prism-text-dim)' },
+  'live-api': { bg: 'rgba(100, 140, 255, 0.12)', border: 'rgba(100, 140, 255, 0.35)', text: '#9eb8ff' },
 };
 
 export default function ProofSection() {
@@ -96,7 +95,7 @@ export default function ProofSection() {
           })}
         </div>
 
-        {realApiBenchmark.status === 'pending' && (
+        {realApiBenchmark.status === 'complete' && (
           <div
             className="holo-card-prism"
             style={{
@@ -117,12 +116,12 @@ export default function ProofSection() {
                     fontFamily: 'var(--font-mono)',
                     padding: '0.2rem 0.5rem',
                     borderRadius: 'var(--prism-radius-sm)',
-                    background: methodColors.pending.bg,
-                    border: `1px solid ${methodColors.pending.border}`,
-                    color: methodColors.pending.text,
+                    background: methodColors['live-api'].bg,
+                    border: `1px solid ${methodColors['live-api'].border}`,
+                    color: methodColors['live-api'].text,
                   }}
                 >
-                  Pending
+                  Live API
                 </span>
                 <span style={{ color: 'var(--prism-text-muted)', fontSize: '0.9rem' }}>{realApiBenchmark.provider}</span>
               </div>
@@ -133,15 +132,17 @@ export default function ProofSection() {
                 {realApiBenchmark.description}
               </p>
             </div>
-            <Link
-              href="https://github.com/RootRouter/RootRouter/blob/main/docs/insights/006-mcp-selection-audit-log.md"
-              className="landing-cta-secondary"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ flexShrink: 0 }}
-            >
-              MCP audit log →
-            </Link>
+            {'resultUrl' in realApiBenchmark && realApiBenchmark.resultUrl && (
+              <a
+                href={realApiBenchmark.resultUrl}
+                className="landing-cta-secondary"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ flexShrink: 0 }}
+              >
+                nim-latest.json →
+              </a>
+            )}
           </div>
         )}
       </div>

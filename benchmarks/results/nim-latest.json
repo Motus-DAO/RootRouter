@@ -1,0 +1,113 @@
+{
+  "provider": "NVIDIA NIM",
+  "model": "nvidia/nemotron-3-ultra-550b-a55b",
+  "base_url": "https://integrate.api.nvidia.com/v1",
+  "queries_count": 12,
+  "timestamp": "2026-07-01T21:38:07.960Z",
+  "estimated_full_context_tokens": 7713,
+  "estimated_filtered_context_tokens": 7590,
+  "api_prompt_tokens_filtered": 11477,
+  "api_prompt_tokens_baseline_spot": 1484,
+  "estimated_context_savings_pct": 1.5947102294826914,
+  "warm_paired_queries": 0,
+  "total_output_tokens": 2628,
+  "total_latency_ms": 257821,
+  "per_query": [
+    {
+      "query": "What is the capital of France?",
+      "original_tokens": 0,
+      "filtered_tokens": 0,
+      "prompt_tokens": 23,
+      "output_tokens": 9,
+      "latency_ms": 37242
+    },
+    {
+      "query": "Convert 72 degrees Fahrenheit to Celsius",
+      "original_tokens": 16,
+      "filtered_tokens": 16,
+      "prompt_tokens": 54,
+      "output_tokens": 113,
+      "latency_ms": 45493
+    },
+    {
+      "query": "What does the HTTP status code 404 mean?",
+      "original_tokens": 70,
+      "filtered_tokens": 70,
+      "prompt_tokens": 191,
+      "output_tokens": 120,
+      "latency_ms": 17617
+    },
+    {
+      "query": "List the primary colors",
+      "original_tokens": 193,
+      "filtered_tokens": 193,
+      "prompt_tokens": 327,
+      "output_tokens": 199,
+      "latency_ms": 8581
+    },
+    {
+      "query": "What is the boiling point of water in Celsius?",
+      "original_tokens": 327,
+      "filtered_tokens": 327,
+      "prompt_tokens": 548,
+      "output_tokens": 62,
+      "latency_ms": 5444
+    },
+    {
+      "query": "Define the term API in software development",
+      "original_tokens": 388,
+      "filtered_tokens": 388,
+      "prompt_tokens": 629,
+      "output_tokens": 512,
+      "latency_ms": 15721
+    },
+    {
+      "query": "What is 15% of 200?",
+      "original_tokens": 831,
+      "filtered_tokens": 708,
+      "prompt_tokens": 1022,
+      "output_tokens": 64,
+      "latency_ms": 1610
+    },
+    {
+      "query": "Name the largest planet in our solar system",
+      "original_tokens": 903,
+      "filtered_tokens": 903,
+      "prompt_tokens": 1338,
+      "output_tokens": 70,
+      "latency_ms": 1149
+    },
+    {
+      "query": "What does HTML stand for?",
+      "original_tokens": 968,
+      "filtered_tokens": 968,
+      "prompt_tokens": 1426,
+      "output_tokens": 85,
+      "latency_ms": 5509
+    },
+    {
+      "query": "How many bytes are in a kilobyte?",
+      "original_tokens": 1030,
+      "filtered_tokens": 1030,
+      "prompt_tokens": 1533,
+      "output_tokens": 370,
+      "latency_ms": 33529
+    },
+    {
+      "query": "Explain the difference between let and const in JavaScript",
+      "original_tokens": 1300,
+      "filtered_tokens": 1300,
+      "prompt_tokens": 1926,
+      "output_tokens": 512,
+      "latency_ms": 38103
+    },
+    {
+      "query": "Write a function to reverse a string in Python",
+      "original_tokens": 1687,
+      "filtered_tokens": 1687,
+      "prompt_tokens": 2460,
+      "output_tokens": 512,
+      "latency_ms": 47823
+    }
+  ]
+}

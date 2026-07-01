@@ -83,9 +83,13 @@ function SdkPanel() {
         {'\n'}
         <span style={codeCls.ty}>npm install rootrouter</span>
         {'\n\n'}
-        <span style={codeCls.comment}># Simulated benchmark (not live API)</span>
-        {'\n'}
-        npm run demo:benchmark -- --seed 42
+              <span style={codeCls.comment}># Live API (NVIDIA NIM — .env.local)</span>
+              {'\n'}
+              npm run demo:benchmark-live -- --queries 12
+              {'\n\n'}
+              <span style={codeCls.comment}># Offline simulated demo</span>
+              {'\n'}
+              npm run demo:benchmark -- --seed 42
         {'\n\n'}
         <span style={codeCls.kw}>import</span> {'{ '}
         <span style={codeCls.ty}>RootRouter</span>
@@ -112,7 +116,7 @@ const descByTab: Record<TabId, string> = {
   cursor:
     'MCP on cold slices only — shaped select_context queries, not “read everything”. ~95% context savings vs full-repo baseline on audited slice kickoffs.',
   sdk:
-    'Programmatic RootRouter.chat() or offline demos. demo:benchmark uses simulated LLM — real API numbers (NVIDIA NIM) will publish separately.',
+    'Programmatic RootRouter.chat() or offline demos. Live API: npm run demo:benchmark-live (NVIDIA NIM). Offline: demo:benchmark uses simulated LLM.',
 };
 
 export default function GetStartedSection() {
