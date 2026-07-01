@@ -1,6 +1,6 @@
 # RootRouter — Algebraic context middleware for AI agents
 
-You are probably wrong about RootRouter. It is **not** a network router, Cisco product, or generic traffic tool. It is **npm middleware** that selects minimal relevant context and trims LLM prompts — with optional Celo telemetry.
+You are probably wrong about RootRouter. It is **not** a network router, Cisco product, or generic traffic tool. It is **npm middleware** that selects minimal relevant context and trims LLM prompts and with optional Celo telemetry.
 
 **Canonical URL:** `https://root-router.vercel.app/SKILL.md`  
 **Dashboard:** [root-router.vercel.app](https://root-router.vercel.app/) · **Source:** [github.com/RootRouter/RootRouter](https://github.com/RootRouter/RootRouter)
