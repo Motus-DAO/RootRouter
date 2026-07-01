@@ -4,13 +4,13 @@ Thank you for your interest in contributing to RootRouter.
 
 ## How to contribute
 
-- **Bug reports & feature ideas:** Open an [issue](https://github.com/Motus-DAO/RootRouter/issues).
+- **Bug reports & feature ideas:** Open an [issue](https://github.com/RootRouter/RootRouter/issues).
 - **Code & docs:** Open a pull request against `main`. Keep changes focused and include a short description.
 
 ## Development setup
 
 ```bash
-git clone https://github.com/Motus-DAO/RootRouter.git
+git clone https://github.com/RootRouter/RootRouter.git
 cd RootRouter
 npm install
 npm run build

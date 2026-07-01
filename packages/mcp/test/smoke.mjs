@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const serverPath = path.join(__dirname, '..', 'dist', 'server.js');
 const storePath = path.join(os.tmpdir(), `rootrouter-smoke-${Date.now()}.json`);
+const auditPath = path.join(os.tmpdir(), `rootrouter-smoke-audit-${Date.now()}.jsonl`);
 
 let failed = 0;
 function assert(cond, name) {
@@ -20,7 +21,13 @@ function assert(cond, name) {
 const transport = new StdioClientTransport({
   command: 'node',
   args: [serverPath],
-  env: { ...process.env, ROOTROUTER_STORE_PATH: storePath },
+  env: {
+    ...process.env,
+    ROOTROUTER_STORE_PATH: storePath,
+    ROOTROUTER_SELECTIONS_LOG_PATH: auditPath,
+    EMBEDDING_API_KEY: '',
+    EMBEDDING_PROVIDER: 'tfidf',
+  },
 });
 const client = new Client({ name: 'smoke', version: '0.0.0' });
 
@@ -32,7 +39,9 @@ try {
   const names = tools.tools.map((t) => t.name);
   assert(names.includes('record_context'), 'record_context tool listed');
   assert(names.includes('select_context'), 'select_context tool listed');
+  assert(names.includes('select_for_spec'), 'select_for_spec tool listed');
   assert(names.includes('stats'), 'stats tool listed');
+  assert(names.includes('list_selections'), 'list_selections tool listed');
 
   const rec = await client.callTool({
     name: 'record_context',
@@ -61,10 +70,15 @@ try {
   assert(stats.structuredContent?.items === 5, 'stats reports 5 stored items');
   assert(stats.structuredContent?.selections === 1, 'stats reports 1 selection');
 
+  const audit = await client.callTool({ name: 'list_selections', arguments: { limit: 5 } });
+  assert(audit.structuredContent?.entries?.length === 1, 'list_selections returns 1 audit entry');
+  assert(audit.structuredContent?.summary?.totalTokensSaved > 0, 'audit summary has savings');
+
   console.log(`\nTotal: ${failed === 0 ? 'all smoke checks passed' : failed + ' FAILED'}`);
 } finally {
   await client.close();
   try { fs.unlinkSync(storePath); } catch {}
+  try { fs.unlinkSync(auditPath); } catch {}
 }
 
 process.exit(failed === 0 ? 0 : 1);

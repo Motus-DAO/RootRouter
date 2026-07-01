@@ -55,6 +55,8 @@ flowchart TB
 
 **North star:** sessions that would send 50k+ tokens routinely send 5–15k of *relevant* context — repo structure + conversation — with **only** a `base_url` change.
 
+**Refined (Insight 007):** agents should fail in **seconds** with **actionable** errors, and succeed with fewer tokens, without the operator learning Docker networking, gzip, and provider key tiers. See [Insight 007 — OpenClaw VPS agent UX](./insights/007-openclaw-vps-agent-ux-lessons.md).
+
 ---
 
 ## Where we are now
@@ -62,7 +64,7 @@ flowchart TB
 | Surface | What it does | Agent awareness |
 |---------|----------------|-----------------|
 | `selectContext` / `ContextEngine` | Query-aware similarity + MMR within a token budget | Code import |
-| `@rootrouter/mcp` | `record_context`, `select_context`, `stats` over a file-backed store | Agent must call tools |
+| `@rootrouter/mcp` | `record_context`, `select_context`, `index_repo`, `stats`, `list_selections` over a file-backed store + `selections.jsonl` audit | Agent must call tools |
 | `@rootrouter/proxy` | Trims `messages[]` on every `/chat/completions` before upstream | **None** (transparent) |
 
 **Main gap (P0):** ~~the proxy is stateless per request~~ — **resolved** (stateful proxy, Phase 1).
@@ -198,10 +200,10 @@ Only RootRouter unifies all three under one `ContextEngine` store and one select
 - [x] Publish prep: `repository`, `publishConfig`, `prepublishOnly`, `npm run publish:packages` (see [`docs/PUBLISH.md`](PUBLISH.md)).
 - [x] One-liner (after npm publish):
   ```bash
-  npm install rootrouter @rootrouter/proxy @rootrouter/mcp
-  npx rootrouter index ./my-repo
-  npx rootrouter-proxy
-  npx rootrouter-mcp
+  npm install rootrouter@beta @rootrouter/proxy@beta @rootrouter/mcp@beta
+  npx rootrouter@beta index ./my-repo
+  npx -p @rootrouter/proxy@beta rootrouter-proxy
+  npx -p @rootrouter/mcp@beta rootrouter-mcp
   ```
 
 ### 4.2 Agent presets
@@ -216,15 +218,102 @@ Only RootRouter unifies all three under one `ContextEngine` store and one select
 
 ---
 
+## Phase 5 — Agent deploy hardening (P0 / P1) ← **next batch**
+
+**Goal:** Make the real-world agent path work — OpenClaw-in-Docker, Venice, reverse proxy, streaming — without operator archaeology.  
+**Insight driver:** [007 — OpenClaw VPS agent UX](./insights/007-openclaw-vps-agent-ux-lessons.md) (Shamy production deploy, 2026-07-01).  
+**Effort:** Medium · **Impact:** High · **Target:** next production batch after insight capture.
+
+### 5.0 Agent playbook — Layer 1 (ethskills pattern)
+
+**Goal:** One fetchable URL so agents know what RootRouter is without mounting the monorepo.
+
+- [x] Ship [`docs/SKILL.md`](./SKILL.md) + [`apps/dashboard/public/SKILL.md`](../apps/dashboard/public/SKILL.md) → `https://root-router.vercel.app/SKILL.md` after dashboard deploy.
+- [x] Playbook snippet template [`docs/templates/agent-playbook-snippet.md`](./templates/agent-playbook-snippet.md).
+- [x] Shamy `AGENTS.md` on VPS — fetch instruction prepended.
+- [ ] Dashboard deploy to Vercel (user push) — verify live URL returns `text/plain` or `text/markdown`.
+- [ ] `rootrouter init openclaw` — merge playbook line into workspace `AGENTS.md` automatically.
+- [ ] Optional sub-skills: `openclaw/SKILL.md`, `proxy/SKILL.md` on same host (P2).
+
+**Acceptance:** New OpenClaw chat asked “what is RootRouter?” → agent fetches SKILL.md → correct answer (not network router).
+
+### 5.1 Proxy streaming reliability (P0)
+
+**Problem:** OpenClaw (and most OpenAI clients) default to `stream: true`. Node `fetch` auto-decompresses gzip but forwarded `content-encoding: gzip` → clients see `terminated` / “LLM request timed out” while the UI shows “in progress.”
+
+- [x] **Runtime fix:** upstream `accept-encoding: identity`; strip `content-encoding` on proxied responses (`packages/proxy/src/server.ts`).
+- [ ] **E2E test:** fake upstream returns `stream: true` + gzip body; assert client receives valid SSE chunks (no `Z_DATA_ERROR`).
+- [ ] **E2E test:** Venice or OpenRouter-shaped stream through full proxy process (`test/e2e-stream.mjs` or extend `test/e2e.mjs`).
+- [ ] **Regression gate:** add stream case to `npm run test -w @rootrouter/proxy` / CI.
+- [ ] **Docs:** proxy README — “Streaming” section notes gzip handling and OpenClaw compatibility.
+
+**Acceptance:** `curl -N` with `stream:true` through proxy returns parseable `data:` lines; OpenClaw dashboard chat completes without 5s timeout.
+
+### 5.2 Distribution — npm or official source deploy (P0)
+
+**Problem:** `npx -p @rootrouter/proxy@beta rootrouter-proxy` 404’d on VPS; private repo forced rsync + `npm run build:all`.
+
+- [ ] **Option A (preferred):** publish `@rootrouter/proxy@beta` + `rootrouter@beta` + `@rootrouter/mcp@beta` via `npm run publish:packages` (resolve `@rootrouter` scope / `rootrouter` package ownership on npm).
+- [ ] **Option B (parallel):** document **source deploy** as first-class in [`docs/PUBLISH.md`](PUBLISH.md) and [`docs/deployment-matrix.md`](deployment-matrix.md):
+  - rsync or deploy-key clone → `npm install` → `npm run build:all`
+  - run `node packages/proxy/dist/server.js` or sidecar compose (5.3)
+- [ ] Update root README + proxy README one-liners to show both paths (`npx` when published, `docker compose` / source when not).
+- [ ] `rootrouter doctor` warns when `npx -p @rootrouter/proxy` is not resolvable and prints source-deploy fallback.
+
+**Acceptance:** fresh VPS operator can deploy proxy in &lt;15 minutes following one doc path without hitting undocumented 404.
+
+### 5.3 OpenClaw + Venice sidecar template (P1)
+
+**Problem:** Host `127.0.0.1:8787` / `172.17.0.1` unreachable from agent containers; port 8787 may collide (`openclaw-bridge`); Caddy needs shared Docker network.
+
+- [ ] Ship **`docker-compose.proxy.yml`** at repo root (or `docs/templates/`) — `rootrouter-proxy` on external network `openclaw_default` (or parameterized).
+- [ ] Harden **`scripts/setup-openclaw-venice-shamy.sh`**:
+  - [ ] Detect `OPENCLAW_CONFIG_DIR` / `apps/shamy` vs `~/.openclaw` layouts.
+  - [ ] Patch compose: `VENICE_API_KEY` in `openclaw-gateway` + `openclaw-cli` `environment:`.
+  - [ ] Attach gateway to Caddy network (`openclaw_default`) + document in script output.
+  - [ ] Set `models.providers.rootrouter.baseUrl` to `http://rootrouter-proxy:8797/api/v1` (Docker DNS, not host IP).
+  - [ ] Per-agent model split: Shamy → `rootrouter/*`, Avril/main → `venice/*` direct.
+- [ ] Add **`docs/providers/openclaw-docker.md`** — sidecar pattern, network diagram, Caddy snippet, token/dashboard URL.
+- [ ] Cross-link from [`deployment-matrix.md`](deployment-matrix.md) OpenClaw row.
+
+**Acceptance:** re-run setup script on clean Shamy-style VPS → dashboard connects, chat reaches Venice through proxy.
+
+### 5.4 `rootrouter doctor --docker` (P1)
+
+**Problem:** failures looked like agent bugs; no single diagnostic covered port, network, stream, and secrets.
+
+- [ ] **`doctor` subcommand flags:** `--docker`, optional `--proxy-url`, `--agent-container` (e.g. `shamy-openclaw-gateway-1`).
+- [ ] **Port check:** `PORT` / 8787 / 8797 listening; warn if occupied by non-RootRouter process (heuristic: `/healthz` body lacks `"upstream"`).
+- [ ] **Reachability:** from host `curl /healthz`; optional `docker exec` into agent container → proxy URL (same check OpenClaw uses).
+- [ ] **Stream smoke:** POST `stream:true` minimal chat; fail if body empty or throws within 10s.
+- [ ] **Secrets hint:** if `VENICE_API_KEY` in `.env` but not in `docker inspect` container env → print fix (`environment:` block).
+- [ ] **Docker networking hint:** if host IP fails but service DNS works → recommend sidecar pattern (link 5.3).
+
+**Acceptance:** `npx rootrouter@beta doctor --docker` prints pass/fail per check with copy-paste fixes (no silent failures).
+
+### 5.5 Deferred from 007 (P2 / P3 — track, not this batch)
+
+- [ ] **P2:** Proxy error classification headers (`x-rootrouter-upstream-status`, `x-rootrouter-error-class`) for agent failover messages.
+- [ ] **P2:** `init` / setup output: “If agent runs in Docker, use service DNS not `127.0.0.1`.”
+- [ ] **P3:** Dashboard topology edge: agent → `rootrouter-proxy` → upstream provider (Motus swarm demo).
+
+---
+
 ## Execution order
 
 | Priority | Work item | Agent UX impact |
 |----------|-----------|-----------------|
-| **P0** | Stateful proxy (Phase 1) | Highest — zero agent changes |
-| **P1** | Embedding cache + proxy env parity | Better relevance |
+| **P0** | Stateful proxy (Phase 1) | Highest — zero agent changes — **done** |
+| **P0** | Proxy streaming + gzip e2e (Phase 5.1) | Fixes “stuck in progress” on OpenClaw — **fix shipped, tests pending** |
+| **P0** | npm publish or official source-deploy (Phase 5.2) | First command on VPS must not 404 |
+| **P1** | OpenClaw sidecar compose + setup script (Phase 5.3) | Repeatable Motus / VPS path |
+| **P1** | `doctor --docker` (Phase 5.4) | Actionable failures vs agent blame |
+| **P1** | Embedding cache + proxy env parity (Phase 3) | Better relevance — **done** |
 | **P2** | Native RepoGraph + graphBoost (Phase 2) | Coding-agent quality — **done (MVP)** |
-| **P3** | ANN index + recall metrics (Phase 3) | Scale + trust |
-| **P4** | `rootrouter init` + publish (Phase 4) | Distribution — **done (publish via `npm run publish:packages`)** |
+| **P2** | Proxy error headers + init Docker hints (Phase 5.5) | Clearer failover |
+| **P3** | ANN index + recall metrics (Phase 3) | Scale + trust — **done** |
+| **P3** | Dashboard deploy topology (Phase 5.5) | Devrel / swarm story |
+| **P4** | `rootrouter init` + publish (Phase 4) | Distribution — **partial (init done; npm publish blocked)** |
 
 ---
 
@@ -252,6 +341,8 @@ Only RootRouter unifies all three under one `ContextEngine` store and one select
 
 ## References
 
+- [Insight 007 — OpenClaw VPS agent UX](./insights/007-openclaw-vps-agent-ux-lessons.md)
+- [Deployment matrix](./deployment-matrix.md)
 - [Graphify](https://graphify.net/) — design reference (not a dependency)
 - RootRouter MCP: [`packages/mcp/README.md`](../packages/mcp/README.md)
 - RootRouter proxy: [`packages/proxy/README.md`](../packages/proxy/README.md)

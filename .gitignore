@@ -9,3 +9,11 @@ dist/
 
 # RootRouter MCP local context store
 .rootrouter/
+
+# Local runtime / benchmark artifacts
+packages/sdk/logs/
+packages/sdk/benchmarks/results/
+
+# Machine-local agent config (use docs/templates + init instead)
+.codex/
+AGENTS.md

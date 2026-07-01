@@ -3,7 +3,7 @@
  * Run: tsx test/repo.test.ts
  */
 import * as path from 'path';
-import { indexRepo, extractImports, detectLanguage, resolveJailedPath } from '../src/repo';
+import { indexRepo, extractImports, detectLanguage, resolveJailedPath, repoNamespace, chunkId } from '../src/repo';
 import { selectContext } from '../src/select';
 
 const FIXTURE = path.join(__dirname, 'fixtures', 'minirepo');
@@ -78,6 +78,24 @@ async function main() {
       threw = true;
     }
     assert(threw, 'rejects path traversal');
+  }
+
+  console.log('\n=== repoNamespace: cross-repo chunk id isolation ===');
+  {
+    const nsA = repoNamespace('/Users/alice/project-a');
+    const nsB = repoNamespace('/Users/alice/project-b');
+    assert(nsA !== nsB, 'different repo roots get different namespaces');
+    assert(nsA === repoNamespace('/Users/alice/project-a'), 'namespace is stable for same root');
+
+    const idA = chunkId(nsA, 'src/index.ts', 1, 40);
+    const idB = chunkId(nsB, 'src/index.ts', 1, 40);
+    assert(idA !== idB, 'same relative path in different repos gets different chunk ids');
+
+    const indexed = indexRepo({ rootPath: FIXTURE, agentId: 'repo-a' });
+    const roots = new Set(
+      indexed.items.map((i) => String((i.metadata as { repoRoot?: string })?.repoRoot ?? ''))
+    );
+    assert(roots.size === 1 && [...roots][0].length > 0, 'indexed chunks carry repoRoot metadata');
   }
 
   console.log('\n=== Results ===');

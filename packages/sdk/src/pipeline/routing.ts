@@ -6,10 +6,13 @@ import type {
   RouterConfig,
 } from '../types';
 import type { ChatPipelineDeps } from './types';
+import { detectCapabilities } from '../models/detectCapabilities';
+import { resolveModelForRouting } from '../models/registry';
 
 /**
  * Stage: routeModel
- * Selects model tier from chamber/context. SAFE_MODE forces cheap model.
+ * Selects model tier from chamber/context, then resolves provider catalog when enabled.
+ * SAFE_MODE forces cheap model.
  */
 export function routeModel(deps: ChatPipelineDeps, input: RouteModelInput): RouteModelOutput {
   const { modelRouter, vectorSpace, agentGraph, config } = deps;
@@ -20,6 +23,7 @@ export function routeModel(deps: ChatPipelineDeps, input: RouteModelInput): Rout
     contextTokensAfter,
     skipRouting,
     forceModel,
+    messages = [],
   } = input;
 
   const effectiveModel = resolveForcedModel(config, forceModel, skipRouting);
@@ -50,14 +54,57 @@ export function routeModel(deps: ChatPipelineDeps, input: RouteModelInput): Rout
     config,
   });
 
+  applyCatalogRouting(routingDecision, config, messages, contextTokensBefore);
+
   // SAFE_MODE: override to cheap model
-  if (config.safeMode && routingDecision.selectedModel !== config.models.fast) {
-    routingDecision.selectedModel = config.models.fast;
-    routingDecision.modelTier = 'fast';
-    routingDecision.reasoning = `SAFE_MODE: overridden to fast model. Original: ${routingDecision.reasoning}`;
+  if (config.safeMode) {
+    const fastModel = resolveFastModel(config, messages, contextTokensBefore);
+    if (routingDecision.selectedModel !== fastModel) {
+      routingDecision.selectedModel = fastModel;
+      routingDecision.modelTier = 'fast';
+      routingDecision.reasoning = `SAFE_MODE: overridden to fast model. Original: ${routingDecision.reasoning}`;
+    }
   }
 
   return { routingDecision };
+}
+
+function applyCatalogRouting(
+  routingDecision: RoutingDecision,
+  config: RouterConfig,
+  messages: Array<{ role: string; content: unknown }>,
+  contextTokensBefore: number
+): void {
+  const capabilities = detectCapabilities(messages, contextTokensBefore);
+  const resolved = resolveModelForRouting(config, {
+    tier: routingDecision.modelTier,
+    capabilities,
+  });
+
+  if (!resolved) return;
+
+  const capNote =
+    capabilities.length > 1
+      ? capabilities.filter((c) => c !== 'chat').join(', ')
+      : 'chat';
+
+  const catalogNote = resolved.fromOverride
+    ? `tier override: ${resolved.modelId}`
+    : `catalog (${resolved.catalogId}): ${resolved.modelId} (${capNote})`;
+
+  routingDecision.selectedModel = resolved.modelId;
+  routingDecision.reasoning = `${routingDecision.reasoning} → ${catalogNote}`;
+}
+
+function resolveFastModel(
+  config: RouterConfig,
+  messages: Array<{ role: string; content: unknown }>,
+  contextTokensBefore: number
+): string {
+  const capabilities = detectCapabilities(messages, contextTokensBefore);
+  const resolved = resolveModelForRouting(config, { tier: 'fast', capabilities });
+  if (resolved) return resolved.modelId;
+  return config.models.fast;
 }
 
 function resolveForcedModel(config: RouterConfig, forceModel?: string, skipRouting?: boolean): string {

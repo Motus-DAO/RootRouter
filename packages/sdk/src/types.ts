@@ -210,8 +210,23 @@ export interface ModelConfig {
   costPer1MOutput: { fast: number; balanced: number; powerful: number };
 }
 
+/** Which tiers had explicit MODEL_* env vars at boot (override catalog for that tier). */
+export type ModelTierOverrides = Partial<Record<ModelTier, boolean>>;
+
+export type ModelCatalogMode = 'off' | 'auto' | 'venice' | 'openrouter';
+
 export interface RouterConfig {
   models: ModelConfig;
+
+  /**
+   * Model catalog routing: off = legacy MODEL_* only; auto = infer from LLM_BASE_URL;
+   * venice | openrouter = explicit provider graph.
+   */
+  modelCatalog?: ModelCatalogMode;
+  /** Per-tier flags: true when MODEL_FAST/BALANCED/POWERFUL was set in env at boot. */
+  modelTierOverrides?: ModelTierOverrides;
+  /** Venice catalog privacy preference (default private). */
+  venicePrivacy?: 'private' | 'anonymized';
 
   easyNormThreshold: number;
   mediumNormThreshold: number;
@@ -279,6 +294,7 @@ export interface RouteModelInput {
   contextTokensAfter: number;
   skipRouting: boolean;
   forceModel?: string;
+  messages?: Array<{ role: string; content: unknown }>;
 }
 
 /** Output of routeModel stage */

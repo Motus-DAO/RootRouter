@@ -44,6 +44,8 @@ export interface IndexRepoResult {
 /** Metadata shape stored on repo ContextItems. */
 export interface RepoNodeMetadata {
   nodeType: 'file_chunk';
+  /** Absolute resolved repo root used when indexing (namespace for chunk ids). */
+  repoRoot?: string;
   path: string;
   language: RepoLanguage;
   startLine: number;

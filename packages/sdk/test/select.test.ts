@@ -5,6 +5,9 @@
 
 import { selectContext, ContextEngine, InMemoryContextStore } from '../src';
 import type { ContextItem } from '../src';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 
 let passed = 0;
 let failed = 0;
@@ -214,6 +217,113 @@ async function main() {
       options: { baseline: 'window', windowSize: 5, mmrLambda: 1 },
     });
     assert(windowBaseline.tokensIn < allBaseline.tokensIn, 'window baseline is smaller than all');
+  }
+
+  // ═══════════════════════════════════════
+  console.log('\n=== FileContextStore: engine stats persist across load ===');
+  // ═══════════════════════════════════════
+  {
+    const { FileContextStore } = await import('../src/select');
+    const tmp = path.join(os.tmpdir(), `rr-stats-${Date.now()}.json`);
+    const store1 = new FileContextStore({ filePath: tmp });
+    const engine1 = new ContextEngine({ store: store1 });
+    for (let i = 0; i < 12; i++) {
+      engine1.record([item(`pf${i}`, `persistence filler sentence ${i} about unrelated topics and data`)]);
+    }
+    engine1.record([
+      item('p-auth', 'persistence test auth login JWT session tokens'),
+      item('p-cook', 'unrelated cookie recipe content'),
+    ]);
+    const sel = await engine1.select('auth login JWT', { tokenBudget: 40 });
+    await engine1.save();
+    assert(sel.tokensSaved > 0, 'selection reports savings for persistence test');
+
+    const store2 = new FileContextStore({ filePath: tmp });
+    const engine2 = new ContextEngine({ store: store2 });
+    await engine2.load();
+    assert(engine2.stats().selections === 1, 'selection count restored from store');
+    assert(engine2.stats().totalTokensSaved === sel.tokensSaved, 'tokens saved restored from store');
+    try { fs.unlinkSync(tmp); } catch {}
+  }
+
+  // ═══════════════════════════════════════
+  console.log('\n=== Path scoping: pathPrefix and excludePaths ===');
+  // ═══════════════════════════════════════
+  {
+    const items: ContextItem[] = [
+      item('academy-1', 'Academy lesson player progress bar cache invalidation', {
+        metadata: { path: 'apps/academy/components/LessonPlayer.tsx' },
+      }),
+      item('academy-2', 'Academy course enrollment stripe checkout flow', {
+        metadata: { path: 'apps/academy/lib/stripe.ts' },
+      }),
+      item('waap-1', 'WaaP wallet onboarding smart account registration', {
+        metadata: { path: 'apps/waap/onboarding/StepBlockchain.tsx' },
+      }),
+      item('psm-1', 'PSM matching profile capacity limits', {
+        metadata: { path: 'apps/psm/matching/profile.ts' },
+      }),
+      item('msg-1', 'prior user turn about lesson player without file path', { kind: 'message' }),
+    ];
+    const scoped = await selectContext({
+      query: 'lesson player progress bar academy',
+      items,
+      tokenBudget: 10_000,
+      options: {
+        pathPrefix: 'apps/academy',
+        mmrLambda: 1,
+      },
+    });
+    const selectedPaths = scoped.selected
+      .map((i) => i.metadata?.path as string | undefined)
+      .filter(Boolean);
+    assert(scoped.breakdown.pathFiltered === 2, 'pathPrefix filters out non-academy file chunks');
+    assert(!selectedPaths.some((p) => p!.startsWith('apps/waap')), 'no WaaP chunks in academy-scoped selection');
+    assert(!selectedPaths.some((p) => p!.startsWith('apps/psm')), 'no PSM chunks in academy-scoped selection');
+    assert(scoped.selected.some((i) => i.id === 'msg-1'), 'message items without path are kept');
+
+    const excluded = await selectContext({
+      query: 'wallet onboarding registration',
+      items,
+      tokenBudget: 10_000,
+      options: {
+        excludePaths: ['apps/waap', 'apps/psm'],
+        mmrLambda: 1,
+      },
+    });
+    const excludedPaths = excluded.selected
+      .map((i) => i.metadata?.path as string | undefined)
+      .filter(Boolean);
+    assert(excluded.breakdown.pathFiltered === 2, 'excludePaths removes WaaP and PSM file chunks');
+    assert(!excludedPaths.some((p) => p!.startsWith('apps/waap')), 'WaaP excluded');
+    assert(excluded.selected.some((i) => i.id === 'academy-1' || i.id === 'academy-2'), 'academy chunks remain');
+  }
+
+  // ═══════════════════════════════════════
+  console.log('\n=== Selection audit log ===');
+  // ═══════════════════════════════════════
+  {
+    const { setSelectionAuditPath, listSelectionAudit, summarizeSelectionAudit } = await import('../src/logs/selectionAudit');
+    const auditFile = path.join(os.tmpdir(), `rr-audit-${Date.now()}.jsonl`);
+    setSelectionAuditPath(auditFile);
+
+    const engine = new ContextEngine({ store: new InMemoryContextStore() });
+    for (let i = 0; i < 10; i++) {
+      engine.record([item(`af${i}`, `audit filler ${i} random prose about gardens`)]);
+    }
+    engine.record([
+      item('a1', 'audit log test kubernetes deployment yaml helm chart', { agentId: 'audit-agent' }),
+      item('a2', 'audit log test banana bread recipe flour sugar', { agentId: 'audit-agent' }),
+    ]);
+    const sel = await engine.select('kubernetes deployment helm', { tokenBudget: 10_000, agentId: 'audit-agent' });
+    assert(sel.selected.length > 0, 'audit test selection returns items');
+    const entries = listSelectionAudit({ limit: 5, logPath: auditFile });
+    assert(entries.length === 1, 'audit log has one entry');
+    assert(entries[0].agentId === 'audit-agent', 'audit entry records agentId');
+    assert(entries[0].tokensSaved >= 0, 'audit entry has tokensSaved');
+    const summary = summarizeSelectionAudit({ logPath: auditFile });
+    assert(summary.totalEntries === 1, 'audit summary counts entries');
+    try { fs.unlinkSync(auditFile); } catch {}
   }
 
   // ═══════════════════════════════════════

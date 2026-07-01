@@ -11,11 +11,11 @@ Three npm packages ship from this monorepo (publish **in this order**):
 ## One-liner install (after publish)
 
 ```bash
-npm install rootrouter @rootrouter/proxy @rootrouter/mcp
-npx rootrouter index ./my-repo
-npx rootrouter init codex
-npx rootrouter-proxy
-npx rootrouter-mcp
+npm install rootrouter@beta @rootrouter/proxy@beta @rootrouter/mcp@beta
+npx rootrouter@beta index ./my-repo
+npx rootrouter@beta init codex
+npx -p @rootrouter/proxy@beta rootrouter-proxy
+npx -p @rootrouter/mcp@beta rootrouter-mcp
 ```
 
 ## Local monorepo usage
@@ -37,7 +37,15 @@ node packages/proxy/dist/server.js
 npm run publish:packages
 ```
 
-This builds all three packages and runs `npm publish -w` for each workspace.
+This builds all three packages and publishes each with the **`beta`** dist-tag (so `latest` stays on the previous stable until you ship 1.0).
+
+Verify after publish:
+
+```bash
+npm view rootrouter dist-tags
+npm view @rootrouter/proxy version
+npm view @rootrouter/mcp version
+```
 
 ## Versioning
 
@@ -60,8 +68,8 @@ npm run legal:sync
 ## Agent setup (no publish required)
 
 ```bash
-npx rootrouter init cursor   # writes .cursor/mcp.json
-npx rootrouter init codex    # appends ~/.codex/config.toml
+npx rootrouter@beta init cursor   # writes .cursor/mcp.json (MCP via npx -p @rootrouter/mcp@beta)
+npx rootrouter@beta init codex    # appends ~/.codex/config.toml
 ```
 
 Optional proxy env snippet is printed after `init cursor`.
@@ -73,7 +81,7 @@ Push context-engine stats to the topology dashboard:
 ```bash
 export ROOTROUTER_STORE_PATH=~/.rootrouter/store.json
 export DASHBOARD_URL=http://localhost:3000
-npx rootrouter snapshot
+npx rootrouter@beta snapshot
 ```
 
 Demos also attach `selectionStats` + `repoGraph` when `ROOTROUTER_STORE_PATH` is set.

@@ -13,7 +13,7 @@
     "prepublishOnly": "node ../../scripts/sync-legal.mjs && npm run build",
     "start": "node dist/server.js",
     "dev": "tsx src/server.ts",
-    "test": "tsx test/filter.test.ts && tsx test/stateful.test.ts",
+    "test": "tsx test/filter.test.ts && tsx test/stateful.test.ts && tsx test/lightweightRouter.test.ts",
     "test:e2e": "node test/e2e.mjs && node test/e2e-stateful.mjs"
   },
   "keywords": ["openai-proxy", "llm-proxy", "rootrouter", "context-selection", "token-reduction", "ai-agents"],
@@ -24,11 +24,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Motus-DAO/RootRouter.git",
+    "url": "git+https://github.com/RootRouter/RootRouter.git",
     "directory": "packages/proxy"
   },
-  "homepage": "https://github.com/Motus-DAO/RootRouter#readme",
-  "bugs": "https://github.com/Motus-DAO/RootRouter/issues",
+  "homepage": "https://github.com/RootRouter/RootRouter#readme",
+  "bugs": "https://github.com/RootRouter/RootRouter/issues",
   "publishConfig": {
     "access": "public"
   },

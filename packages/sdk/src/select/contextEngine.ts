@@ -1,6 +1,8 @@
 import { RootPair, Vector } from '../types';
 import { norm } from '../math/vectors';
 import { StructuredVectorSpace } from '../core/vectorSpace';
+import { randomUUID } from 'crypto';
+import { appendSelectionAudit } from '../logs/selectionAudit';
 import {
   ContextItem,
   ContextStore,
@@ -12,6 +14,7 @@ import { ContextSelector } from './selector';
 import { TfIdfEmbeddingProvider } from './embedding/tfidfProvider';
 import { CachedEmbeddingProvider } from './embedding/cachedProvider';
 import { InMemoryContextStore } from './store/inMemoryStore';
+import type { FileContextStore } from './store/fileStore';
 
 export interface ContextEngineOptions {
   /** Embedding provider. Defaults to zero-dependency TF-IDF. */
@@ -32,6 +35,8 @@ export interface ContextEngineOptions {
   minItemsForChambers?: number;
   /** PCA dimensions for chamber fitting. Default 8. */
   pcaDimensions?: number;
+  /** Append each selection to selections.jsonl. Default true. */
+  auditSelections?: boolean;
 }
 
 /**
@@ -50,6 +55,7 @@ export class ContextEngine {
   private useChambers: boolean;
   private minItemsForChambers: number;
   private chambersDirty: boolean = true;
+  private auditSelections: boolean;
 
   private totalTokensSaved: number = 0;
   private totalSelections: number = 0;
@@ -66,6 +72,7 @@ export class ContextEngine {
     this.selector = new ContextSelector(this.provider);
     this.useChambers = options.useChambers ?? false;
     this.minItemsForChambers = options.minItemsForChambers ?? 12;
+    this.auditSelections = options.auditSelections !== false;
     this.vectorSpace = this.useChambers
       ? new StructuredVectorSpace(options.pcaDimensions ?? 8)
       : null;
@@ -102,6 +109,27 @@ export class ContextEngine {
 
     this.totalTokensSaved += result.tokensSaved;
     this.totalSelections += 1;
+
+    if (this.auditSelections && result.selected.length > 0) {
+      const relevances = result.selected.map((i) => result.scores[i.id]?.relevance ?? 0);
+      appendSelectionAudit({
+        ts: Date.now(),
+        id: randomUUID(),
+        query,
+        agentId: options.agentId,
+        tokenBudget: options.tokenBudget,
+        tokensIn: result.tokensIn,
+        tokensOut: result.tokensOut,
+        tokensSaved: result.tokensSaved,
+        percentSaved: result.percentSaved,
+        selectedCount: result.selected.length,
+        selectedIds: result.selected.map((i) => i.id),
+        topRelevance: relevances.length > 0 ? Math.max(...relevances) : undefined,
+      });
+    }
+
+    this.syncEngineStatsToStore();
+
     return result;
   }
 
@@ -112,12 +140,14 @@ export class ContextEngine {
 
   /** Persist the store if it supports durability. */
   async save(): Promise<void> {
+    this.syncEngineStatsToStore();
     if (this.store.save) await this.store.save();
   }
 
   /** Load the store if it supports durability. */
   async load(): Promise<void> {
     if (this.store.load) await this.store.load();
+    this.restoreEngineStatsFromStore();
     this.chambersDirty = true;
   }
 
@@ -140,6 +170,23 @@ export class ContextEngine {
 
   getStore(): ContextStore {
     return this.store;
+  }
+
+  private restoreEngineStatsFromStore(): void {
+    const store = this.store as FileContextStore;
+    if (typeof store.getEngineStats !== 'function') return;
+    const s = store.getEngineStats();
+    this.totalSelections = s.totalSelections;
+    this.totalTokensSaved = s.totalTokensSaved;
+  }
+
+  private syncEngineStatsToStore(): void {
+    const store = this.store as FileContextStore;
+    if (typeof store.setEngineStats !== 'function') return;
+    store.setEngineStats({
+      totalSelections: this.totalSelections,
+      totalTokensSaved: this.totalTokensSaved,
+    });
   }
 
   private async ensureChambers(candidates: ContextItem[]): Promise<void> {

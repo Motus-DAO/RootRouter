@@ -13,5 +13,5 @@ export { chunkFileContent } from './chunk';
 export type { FileChunk } from './chunk';
 export { walkRepo } from './walk';
 export type { ScannedFile } from './walk';
-export { chunkId, buildChunkNodes, wireEdges } from './graph';
+export { chunkId, repoNamespace, buildChunkNodes, wireEdges } from './graph';
 export { resolveJailedPath, isIgnoredDir, isAllowedExtension } from './security';

@@ -284,6 +284,16 @@ function SnapshotView({ data }: { data: SnapshotData }) {
             gap: '0.75rem',
           }}
         >
+          <div
+            style={{
+              gridColumn: '1 / -1',
+              fontSize: '0.75rem',
+              color: 'var(--prism-text-muted)',
+              marginBottom: '-0.1rem',
+            }}
+          >
+            Handoff selection stats (from RootRouter store snapshot)
+          </div>
           <div className="holo-card-prism" style={{ padding: '0.75rem 1rem', position: 'relative', zIndex: 1 }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--prism-text-muted)' }}>Context store items</div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', color: 'var(--prism-amber)' }}>

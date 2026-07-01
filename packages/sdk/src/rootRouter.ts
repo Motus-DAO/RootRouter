@@ -153,6 +153,7 @@ export class RootRouter {
         contextTokensAfter: filterResult.filteredTokenCount,
         skipRouting: params.skipRouting ?? false,
         forceModel: params.forceModel,
+        messages,
       });
     } catch (err) {
       stageErrors.routeModel = err instanceof Error ? err.message : String(err);

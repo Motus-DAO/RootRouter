@@ -15,7 +15,7 @@
     "proxy:start": "npm run start -w @rootrouter/proxy",
     "build:all": "npm run build -w rootrouter && npm run build -w @rootrouter/proxy && npm run build -w @rootrouter/mcp",
     "legal:sync": "node scripts/sync-legal.mjs",
-    "publish:packages": "npm run legal:sync && npm run build:all && npm publish -w rootrouter && npm publish -w @rootrouter/proxy && npm publish -w @rootrouter/mcp",
+    "publish:packages": "npm run legal:sync && npm run build:all && npm publish -w rootrouter --tag beta && npm publish -w @rootrouter/proxy --tag beta && npm publish -w @rootrouter/mcp --tag beta",
     "demo:basic": "npm run demo:basic -w rootrouter",
     "demo:swarm": "npm run demo:swarm -w rootrouter",
     "demo:benchmark": "npm run demo:benchmark -w rootrouter",
@@ -23,11 +23,12 @@
     "deploy:contract": "npm run deploy:contract -w rootrouter",
     "dashboard": "npm run dev -w @rootrouter/dashboard",
     "dashboard:build": "npm run build -w @rootrouter/dashboard",
-    "dashboard:start": "npm run start -w @rootrouter/dashboard"
+    "dashboard:start": "npm run start -w @rootrouter/dashboard",
+    "audit:mcp": "npm run build -w rootrouter && node packages/sdk/dist/cli/index.js audit"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Motus-DAO/RootRouter.git"
+    "url": "https://github.com/RootRouter/RootRouter.git"
   },
   "author": "Gerry Alvarez <gerry@motusdao.org>",
   "license": "MIT"

@@ -7,10 +7,10 @@ Algebraic agent infrastructure for AI agents — context selection, native repo 
 ## Quick start
 
 ```bash
-npm install rootrouter @rootrouter/proxy @rootrouter/mcp
-npx rootrouter index ./my-repo
-npx rootrouter init cursor
-npx rootrouter-proxy
+npm install rootrouter@beta @rootrouter/proxy@beta @rootrouter/mcp@beta
+npx rootrouter@beta index ./my-repo
+npx rootrouter@beta init cursor
+npx -p @rootrouter/proxy@beta rootrouter-proxy
 ```
 
-Full documentation: https://github.com/Motus-DAO/RootRouter
+Full documentation: https://github.com/RootRouter/RootRouter

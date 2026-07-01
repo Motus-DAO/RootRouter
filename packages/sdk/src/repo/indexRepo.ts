@@ -28,6 +28,7 @@ export function indexRepo(options: IndexRepoOptions): IndexRepoResult {
   const nodes = buildChunkNodes(files, {
     maxChunkTokens,
     agentId: options.agentId,
+    rootPath,
   });
 
   const edgesCreated = wireEdges(nodes);

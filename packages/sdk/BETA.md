@@ -8,4 +8,4 @@ RootRouter **0.2.0-beta.0** is early beta software.
 - Cost and token savings shown in demos and docs are **benchmark results**, not guarantees for your workload.
 - Hosted cloud and x402 billing are **not available yet**. See [COMMERCIAL.md](./COMMERCIAL.md).
 
-Report issues: https://github.com/Motus-DAO/RootRouter/issues
+Report issues: https://github.com/RootRouter/RootRouter/issues

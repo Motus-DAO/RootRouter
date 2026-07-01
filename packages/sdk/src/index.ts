@@ -61,6 +61,40 @@ export { AgentTopologyGraph } from './core/agentGraph';
 export { ContextFilter } from './core/contextFilter';
 export { ModelRouter } from './core/router';
 
+// Model catalogs (provider graphs: tier + capability → model id)
+export {
+  VENICE_CATALOG,
+  VENICE_TIER_DEFAULTS,
+  resolveVeniceModel,
+  followVeniceEdge,
+  OPENROUTER_CATALOG,
+  OPENROUTER_TIER_DEFAULTS,
+  resolveOpenRouterModel,
+  followOpenRouterEdge,
+  resolveFromCatalog,
+  followCatalogEdge,
+  getCatalogById,
+  getTierDefaults,
+  inferCatalogFromBaseUrl,
+  resolveActiveCatalogId,
+  resolveModelForRouting,
+  detectCapabilities,
+  lastUserMessageText,
+  estimateMessagesTokens,
+} from './models';
+export type {
+  ModelCapability,
+  PrivacyMode,
+  ModelCatalogNode,
+  ModelCatalogEdge,
+  ModelCatalog,
+  ResolveModelInput,
+  ModelCatalogId,
+  ResolveModelForRoutingInput,
+  RoutableMessage,
+} from './models';
+export type { ModelCatalogMode, ModelTierOverrides } from './types';
+
 // Pipeline (modular chat stages)
 export {
   retrieveContext,
@@ -82,6 +116,14 @@ export {
 } from './logs/routerMetrics';
 export type { RouterMetricsEntry, RouterMetricsErrorEntry } from './logs/routerMetrics';
 export { LocalTelemetryFallback, setLocalTelemetryPath, getLocalTelemetryPath } from './logs/localTelemetry';
+export {
+  appendSelectionAudit,
+  listSelectionAudit,
+  summarizeSelectionAudit,
+  setSelectionAuditPath,
+  getSelectionAuditPath,
+} from './logs/selectionAudit';
+export type { SelectionAuditEntry, SelectionAuditSummary, ListSelectionAuditOptions } from './logs/selectionAudit';
 
 // Celo
 export { CeloTelemetry } from './celo/telemetry';
@@ -132,3 +174,18 @@ export type {
   RepoNodeMetadata,
   RepoLanguage,
 } from './repo';
+
+// Spec-native selection helpers
+export {
+  buildQueryFromSpec,
+  buildSelectionFromSpec,
+  extractAcceptanceCriteria,
+  extractAnchorPaths,
+  extractSpecTitle,
+  inferPathPrefix,
+  loadSpecText,
+  parseSpec,
+  pathMentionedInSpec,
+  resolveActiveSpecPath,
+} from './spec';
+export type { ParsedSpec, SpecSelectionHints } from './spec';

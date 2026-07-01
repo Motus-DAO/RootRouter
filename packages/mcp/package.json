@@ -25,11 +25,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Motus-DAO/RootRouter.git",
+    "url": "git+https://github.com/RootRouter/RootRouter.git",
     "directory": "packages/mcp"
   },
-  "homepage": "https://github.com/Motus-DAO/RootRouter#readme",
-  "bugs": "https://github.com/Motus-DAO/RootRouter/issues",
+  "homepage": "https://github.com/RootRouter/RootRouter#readme",
+  "bugs": "https://github.com/RootRouter/RootRouter/issues",
   "publishConfig": {
     "access": "public"
   },

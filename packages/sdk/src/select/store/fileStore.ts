@@ -10,9 +10,15 @@ export interface FileStoreOptions extends InMemoryStoreOptions {
   loadOnInit?: boolean;
 }
 
+export interface PersistedEngineStats {
+  totalSelections: number;
+  totalTokensSaved: number;
+}
+
 interface PersistedShape {
   version: number;
   items: ContextItem[];
+  engineStats?: PersistedEngineStats;
 }
 
 const PERSIST_VERSION = 1;
@@ -26,6 +32,7 @@ const PERSIST_VERSION = 1;
  */
 export class FileContextStore extends InMemoryContextStore {
   private filePath: string;
+  private engineStats: PersistedEngineStats = { totalSelections: 0, totalTokensSaved: 0 };
 
   constructor(options: FileStoreOptions) {
     super(options);
@@ -42,11 +49,20 @@ export class FileContextStore extends InMemoryContextStore {
       if (!raw.trim()) return;
       const parsed = JSON.parse(raw) as PersistedShape | ContextItem[];
       const items = Array.isArray(parsed) ? parsed : parsed.items ?? [];
+      const stats = Array.isArray(parsed) ? undefined : parsed.engineStats;
       this.items.clear();
       for (const item of items) {
         if (item && typeof item.id === 'string' && typeof item.text === 'string') {
           this.items.set(item.id, item);
         }
+      }
+      if (stats && typeof stats.totalSelections === 'number' && typeof stats.totalTokensSaved === 'number') {
+        this.engineStats = {
+          totalSelections: stats.totalSelections,
+          totalTokensSaved: stats.totalTokensSaved,
+        };
+      } else {
+        this.engineStats = { totalSelections: 0, totalTokensSaved: 0 };
       }
       this.evict();
     } catch (err) {
@@ -65,9 +81,21 @@ export class FileContextStore extends InMemoryContextStore {
     const payload: PersistedShape = {
       version: PERSIST_VERSION,
       items: this.all(),
+      engineStats: this.engineStats,
     };
     const tmp = `${this.filePath}.tmp-${process.pid}`;
     fs.writeFileSync(tmp, JSON.stringify(payload), 'utf8');
     fs.renameSync(tmp, this.filePath);
+  }
+
+  getEngineStats(): PersistedEngineStats {
+    return { ...this.engineStats };
+  }
+
+  setEngineStats(stats: PersistedEngineStats): void {
+    this.engineStats = {
+      totalSelections: stats.totalSelections,
+      totalTokensSaved: stats.totalTokensSaved,
+    };
   }
 }

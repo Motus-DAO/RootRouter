@@ -16,6 +16,8 @@ import {
   proxyEnvSnippet,
   resolveInitPaths,
 } from './init';
+import { runAuditCli } from './audit';
+import { runDoctorCli } from './doctor';
 
 interface ParsedArgs {
   command: string;
@@ -24,6 +26,14 @@ interface ParsedArgs {
   storePath?: string;
   agentId?: string;
   dashboardUrl?: string;
+  auditLimit?: number;
+  json?: boolean;
+  localEmbeddings?: boolean;
+  activeSpecPath?: string;
+  proxyUrl?: string;
+  writeAgentsMd?: boolean;
+  projectStore?: boolean;
+  projectAgentId?: string;
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
@@ -34,6 +44,14 @@ function parseArgs(argv: string[]): ParsedArgs {
   let storePath: string | undefined;
   let agentId: string | undefined;
   let dashboardUrl: string | undefined;
+  let auditLimit: number | undefined;
+  let json = false;
+  let localEmbeddings = false;
+  let activeSpecPath: string | undefined;
+  let proxyUrl: string | undefined;
+  let writeAgentsMd = false;
+  let projectStore = false;
+  let projectAgentId: string | undefined;
 
   // `rootrouter ./my-repo` → treat as index
   if (command && !command.startsWith('-') && (command.startsWith('.') || command.startsWith('/'))) {
@@ -54,12 +72,28 @@ function parseArgs(argv: string[]): ParsedArgs {
       agentId = args[++i];
     } else if (a === '--dashboard' && args[i + 1]) {
       dashboardUrl = args[++i];
+    } else if (a === '--limit' && args[i + 1]) {
+      auditLimit = Number(args[++i]);
+    } else if (a === '--json') {
+      json = true;
+    } else if (a === '--local-embeddings') {
+      localEmbeddings = true;
+    } else if (a === '--active-spec' && args[i + 1]) {
+      activeSpecPath = args[++i];
+    } else if (a === '--proxy-url' && args[i + 1]) {
+      proxyUrl = args[++i];
+    } else if (a === '--write-agents-md') {
+      writeAgentsMd = true;
+    } else if (a === '--project-store') {
+      projectStore = true;
+    } else if (a === '--project-agent-id' && args[i + 1]) {
+      projectAgentId = args[++i];
     } else if (!a.startsWith('-') && command === 'index') {
       repoPath = a;
     }
   }
 
-  return { command, subcommand, repoPath, storePath, agentId, dashboardUrl };
+  return { command, subcommand, repoPath, storePath, agentId, dashboardUrl, auditLimit, json, localEmbeddings, activeSpecPath, proxyUrl, writeAgentsMd, projectStore, projectAgentId };
 }
 
 function printUsage(): void {
@@ -67,14 +101,16 @@ function printUsage(): void {
 
 Usage:
   rootrouter index <repo-path> [--store <store.json>] [--agent <id>]
-  rootrouter init cursor [--store <store.json>]
-  rootrouter init codex [--store <store.json>]
+  rootrouter init cursor [--store <store.json>] [--local-embeddings] [--active-spec <path>]
+  rootrouter init codex [--store <store.json>] [--local-embeddings] [--active-spec <path>] [--write-agents-md] [--project-store] [--project-agent-id <id>]
   rootrouter snapshot [--store <store.json>] [--dashboard <url>]
+  rootrouter audit [--limit <n>] [--agent <id>] [--json]
+  rootrouter doctor [--store <store.json>] [--proxy-url <url>] [--json]
 
-One-liners (after npm install):
-  npx rootrouter index ./my-repo
-  npx rootrouter-proxy
-  npx rootrouter-mcp
+One-liners (beta on npm):
+  npx rootrouter@beta index ./my-repo
+  npx -p @rootrouter/proxy@beta rootrouter-proxy
+  npx -p @rootrouter/mcp@beta rootrouter-mcp
 `);
 }
 
@@ -111,26 +147,84 @@ async function runIndex(repoPath: string, storePath?: string, agentId?: string):
   );
 }
 
-async function runInit(subcommand: string | undefined, storePath: string | undefined): Promise<void> {
+async function runInit(
+  subcommand: string | undefined,
+  storePath: string | undefined,
+  localEmbeddings?: boolean,
+  activeSpecPath?: string,
+  writeAgentsMd?: boolean,
+  projectStore?: boolean,
+  projectAgentId?: string
+): Promise<void> {
   const cwd = process.cwd();
   const paths = resolveInitPaths(cwd);
   if (storePath) paths.storePath = path.resolve(storePath);
+  const initOptions = {
+    localEmbeddings: localEmbeddings === true,
+    activeSpecPath: activeSpecPath ? path.resolve(activeSpecPath) : undefined,
+    writeAgentsMd: writeAgentsMd === true,
+    projectStore: projectStore === true,
+    projectAgentId,
+  };
 
   if (subcommand === 'cursor') {
-    const result = initCursor(cwd, paths);
+    const result = initCursor(cwd, paths, initOptions);
     console.error(`[rootrouter] ${result.message}`);
-    console.log(JSON.stringify({ ok: true, target: result.target, proxySnippet: proxyEnvSnippet(paths) }, null, 2));
+    console.error('');
+    console.error('Agent rule: .cursor/rules/rootrouter-mcp.mdc (cold vs warm path — skip on single-file fixes)');
+    console.error('Handoff template: docs/templates/slice-handoff.md');
+    console.error('');
+    if (initOptions.localEmbeddings) {
+      console.error('Embeddings: local MiniLM (recommended for monorepos). Default without flag is TF-IDF (zero-dep).');
+    } else {
+      console.error('Embeddings: TF-IDF (zero-dep default). For monorepos: re-run with --local-embeddings');
+    }
+    console.error('');
+    console.error('Spec workflow: set ROOTROUTER_ACTIVE_SPEC or use MCP select_for_spec (one-call from spec file).');
+    console.error('(Motus projects may use MOTUS_ACTIVE_SPEC — same meaning.)');
+    console.error('');
+    console.error('Cursor uses MCP only. For transparent proxy + shared store (Codex/SDK agents):');
+    console.error(proxyEnvSnippet(paths));
+    console.log(
+      JSON.stringify(
+        { ok: true, target: result.target, localEmbeddings: !!initOptions.localEmbeddings, proxySnippet: proxyEnvSnippet(paths) },
+        null,
+        2
+      )
+    );
     return;
   }
 
   if (subcommand === 'codex') {
-    const result = initCodex(paths);
+    const result = initCodex(cwd, paths, initOptions);
     console.error(`[rootrouter] ${result.message}`);
-    console.log(JSON.stringify({ ok: true, target: result.target }, null, 2));
+    if (initOptions.localEmbeddings) {
+      console.error('Embeddings: local MiniLM enabled in Codex MCP env.');
+    }
+    if (initOptions.projectStore) {
+      console.error(`Per-project store: ${paths.storePath}`);
+    }
+    if (result.agentsMd) {
+      console.error(`Global AGENTS.md: ${result.agentsMd.globalPath}`);
+      console.error(`Project AGENTS.md: ${result.agentsMd.projectPath}`);
+      console.error('Deployment matrix: docs/deployment-matrix.md');
+    }
+    console.log(
+      JSON.stringify(
+        {
+          ok: true,
+          target: result.target,
+          storePath: paths.storePath,
+          agentsMd: result.agentsMd ?? null,
+        },
+        null,
+        2
+      )
+    );
     return;
   }
 
-  console.error('Usage: rootrouter init cursor|codex [--store <store.json>]');
+  console.error('Usage: rootrouter init cursor|codex [--store <store.json>] [--local-embeddings] [--active-spec <path>] [--write-agents-md] [--project-store] [--project-agent-id <id>]');
   process.exit(1);
 }
 
@@ -171,7 +265,7 @@ async function runSnapshot(storePath?: string, dashboardUrl?: string): Promise<v
 
 async function main(): Promise<void> {
   const parsed = parseArgs(process.argv);
-  const { command, subcommand, repoPath, storePath, agentId, dashboardUrl } = parsed;
+  const { command, subcommand, repoPath, storePath, agentId, dashboardUrl, auditLimit, json, localEmbeddings, activeSpecPath, proxyUrl, writeAgentsMd, projectStore, projectAgentId } = parsed;
 
   if (command === '--help' || command === '-h' || !command) {
     printUsage();
@@ -184,13 +278,23 @@ async function main(): Promise<void> {
   }
 
   if (command === 'init') {
-    await runInit(subcommand, storePath);
+    await runInit(subcommand, storePath, localEmbeddings, activeSpecPath, writeAgentsMd, projectStore, projectAgentId);
     return;
   }
 
   if (command === 'snapshot') {
     await runSnapshot(storePath, dashboardUrl);
     return;
+  }
+
+  if (command === 'audit') {
+    runAuditCli({ limit: auditLimit, agentId, json });
+    return;
+  }
+
+  if (command === 'doctor') {
+    const code = await runDoctorCli({ storePath, proxyUrl, json });
+    process.exit(code);
   }
 
   printUsage();

@@ -49,17 +49,19 @@ const stats = [
 ];
 
 const resources = [
+  { title: 'Agent SKILL.md', desc: 'Fetch this before using RootRouter', href: '/SKILL.md' },
   { title: 'Dashboard', desc: 'View telemetry and topology', href: '/dashboard' },
   { title: 'Topology', desc: 'Agent and interaction graphs', href: '/dashboard/topology' },
   { title: 'npm', desc: 'Install rootrouter', href: 'https://www.npmjs.com/package/rootrouter', external: true },
-  { title: 'GitHub', desc: 'Source and demos', href: 'https://github.com/Motus-DAO/RootRouter', external: true },
+  { title: 'GitHub', desc: 'Source and demos', href: 'https://github.com/RootRouter/RootRouter', external: true },
 ];
 
 const footerLinks = [
   { href: '/', label: 'Home' },
+  { href: '/SKILL.md', label: 'SKILL.md' },
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/dashboard/topology', label: 'Topology' },
-  { href: 'https://github.com/Motus-DAO/RootRouter', label: 'GitHub', external: true },
+  { href: 'https://github.com/RootRouter/RootRouter', label: 'GitHub', external: true },
   { href: 'https://www.npmjs.com/package/rootrouter', label: 'npm', external: true },
 ];
 

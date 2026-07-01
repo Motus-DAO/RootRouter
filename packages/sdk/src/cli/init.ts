@@ -1,4 +1,9 @@
 import { createRequire as nodeCreateRequire } from 'module';
+import {
+  defaultProjectStorePath,
+  writeCodexAgentsMd,
+  type WriteAgentsMdResult,
+} from './agentsMd';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -31,7 +36,9 @@ export function resolveMcpLaunch(): { command: string; args: string[] } {
   const monorepoMcp = path.resolve(__dirname, '../../../mcp/dist/server.js');
   if (fs.existsSync(monorepoMcp)) return { command: 'node', args: [monorepoMcp] };
 
-  return { command: 'npx', args: ['rootrouter-mcp'] };
+  const mcpPkg =
+    process.env.ROOTROUTER_MCP_PACKAGE?.trim() || '@rootrouter/mcp@beta';
+  return { command: 'npx', args: ['-p', mcpPkg, 'rootrouter-mcp'] };
 }
 
 export function resolveInitPaths(cwd: string): InitPaths {
@@ -48,16 +55,43 @@ export interface InitResult {
   message: string;
 }
 
-export function initCursor(cwd: string, paths: InitPaths): InitResult {
+export interface InitCursorOptions {
+  /** Write EMBEDDING_PROVIDER=local + EMBEDDING_LOCAL_MODEL=minilm into MCP env. */
+  localEmbeddings?: boolean;
+  /** Optional active spec path written to ROOTROUTER_ACTIVE_SPEC in MCP env. */
+  activeSpecPath?: string;
+  /** Write RootRouter sections to ~/.codex/AGENTS.md and ./AGENTS.md (codex init). */
+  writeAgentsMd?: boolean;
+  /** Use ~/.rootrouter/<project>/codex-store.json instead of global default store. */
+  projectStore?: boolean;
+  /** agentId for project AGENTS.md and MCP retrieval scoping. */
+  projectAgentId?: string;
+}
+
+export function buildMcpServerEnv(paths: InitPaths, options?: InitCursorOptions): Record<string, string> {
+  const env: Record<string, string> = {
+    ROOTROUTER_STORE_PATH: paths.storePath,
+  };
+  if (options?.localEmbeddings) {
+    env.EMBEDDING_PROVIDER = 'local';
+    env.EMBEDDING_LOCAL_MODEL = 'minilm';
+  } else {
+    env.EMBEDDING_PROVIDER = 'tfidf';
+  }
+  if (options?.activeSpecPath?.trim()) {
+    env.ROOTROUTER_ACTIVE_SPEC = options.activeSpecPath.trim();
+  }
+  return env;
+}
+
+export function initCursor(cwd: string, paths: InitPaths, options?: InitCursorOptions): InitResult {
   const cursorDir = path.join(cwd, '.cursor');
   const configPath = path.join(cursorDir, 'mcp.json');
 
   const entry = {
     command: paths.mcpLaunch.command,
     args: paths.mcpLaunch.args,
-    env: {
-      ROOTROUTER_STORE_PATH: paths.storePath,
-    },
+    env: buildMcpServerEnv(paths, options),
   };
 
   let config: { mcpServers: Record<string, unknown> } = { mcpServers: {} };
@@ -74,23 +108,93 @@ export function initCursor(cwd: string, paths: InitPaths): InitResult {
   fs.mkdirSync(cursorDir, { recursive: true });
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
 
+  const ruleResult = writeCursorRootRouterRule(cwd);
+
   return {
     target: configPath,
     created: true,
-    message: `Wrote Cursor MCP config at ${configPath}`,
+    message:
+      `Wrote Cursor MCP config at ${configPath}` +
+      (ruleResult ? `; ${ruleResult}` : ''),
   };
+}
+
+/** Install `.cursor/rules/rootrouter-mcp.mdc` so agents use MCP without manual prompting. */
+export function writeCursorRootRouterRule(cwd: string): string | null {
+  const rulesDir = path.join(cwd, '.cursor', 'rules');
+  const rulePath = path.join(rulesDir, 'rootrouter-mcp.mdc');
+  const templateCandidates = [
+    path.resolve(__dirname, '../../templates/cursor-rootrouter-mcp-rule.mdc'),
+    path.resolve(__dirname, '../../../../docs/templates/cursor-rootrouter-mcp-rule.mdc'),
+  ];
+
+  let content: string | null = null;
+  for (const candidate of templateCandidates) {
+    if (fs.existsSync(candidate)) {
+      content = fs.readFileSync(candidate, 'utf8');
+      break;
+    }
+  }
+  if (!content) return null;
+
+  fs.mkdirSync(rulesDir, { recursive: true });
+  fs.writeFileSync(rulePath, content, 'utf8');
+  return `wrote agent rule at ${rulePath}`;
 }
 
 function formatTomlString(value: string): string {
   return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
-export function initCodex(paths: InitPaths): InitResult {
-  const configPath = path.join(os.homedir(), '.codex', 'config.toml');
+/** Replace the RootRouter MCP table family without disturbing unrelated Codex config. */
+function upsertRootRouterMcpBlock(configPath: string, block: string): boolean {
+  const existed = fs.existsSync(configPath);
+  const existing = existed ? fs.readFileSync(configPath, 'utf8') : '';
+  const lines = existing.split(/\r?\n/);
+  const kept: string[] = [];
+  let skippingRootRouter = false;
+
+  for (const line of lines) {
+    const header = line.trim().match(/^\[([^\]]+)\]$/)?.[1];
+    if (header) {
+      if (header === 'mcp_servers.rootrouter' || header.startsWith('mcp_servers.rootrouter.')) {
+        skippingRootRouter = true;
+        continue;
+      }
+      skippingRootRouter = false;
+    }
+    if (!skippingRootRouter) kept.push(line);
+  }
+
+  const prefix = kept.join('\n').trimEnd();
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  fs.writeFileSync(configPath, `${prefix}${prefix ? '\n' : ''}${block.trimStart()}`, 'utf8');
+  return !existed;
+}
+
+export function initCodex(
+  cwd: string,
+  paths: InitPaths,
+  options?: InitCursorOptions
+): InitResult & { agentsMd?: WriteAgentsMdResult } {
+  if (options?.projectStore) {
+    paths.storePath = defaultProjectStorePath(paths.repoPath);
+  }
+  fs.mkdirSync(path.dirname(paths.storePath), { recursive: true });
+
+  // Project stores need project-scoped MCP configuration; otherwise every repo
+  // would inherit whichever store was written to the global config most recently.
+  const configPath = options?.projectStore
+    ? path.join(cwd, '.codex', 'config.toml')
+    : path.join(os.homedir(), '.codex', 'config.toml');
   const argsToml =
     paths.mcpLaunch.args.length === 0
       ? '[]'
       : `[${paths.mcpLaunch.args.map((a) => formatTomlString(a)).join(', ')}]`;
+
+  const envLines = Object.entries(buildMcpServerEnv(paths, options)).map(
+    ([key, value]) => `${key} = ${formatTomlString(value)}`
+  );
 
   const block = [
     '',
@@ -99,30 +203,27 @@ export function initCodex(paths: InitPaths): InitResult {
     `args = ${argsToml}`,
     '',
     '[mcp_servers.rootrouter.env]',
-    `ROOTROUTER_STORE_PATH = ${formatTomlString(paths.storePath)}`,
+    ...envLines,
     '',
   ].join('\n');
 
-  if (fs.existsSync(configPath)) {
-    const existing = fs.readFileSync(configPath, 'utf8');
-    if (existing.includes('[mcp_servers.rootrouter]')) {
-      return {
-        target: configPath,
-        created: false,
-        message:
-          `[mcp_servers.rootrouter] already exists in ${configPath} — update paths manually if needed.`,
-      };
-    }
-    fs.appendFileSync(configPath, block, 'utf8');
-  } else {
-    fs.mkdirSync(path.dirname(configPath), { recursive: true });
-    fs.writeFileSync(configPath, block.trimStart(), 'utf8');
+  const configCreated = upsertRootRouterMcpBlock(configPath, block);
+
+  let agentsMd: WriteAgentsMdResult | undefined;
+  if (options?.writeAgentsMd) {
+    agentsMd = writeCodexAgentsMd(cwd, {
+      repoPath: paths.repoPath,
+      storePath: paths.storePath,
+      agentId: options.projectAgentId,
+      activeSpecPath: options.activeSpecPath,
+    });
   }
 
   return {
     target: configPath,
-    created: true,
-    message: `Wrote RootRouter MCP block to ${configPath}`,
+    created: configCreated,
+    message: `${configCreated ? 'Wrote' : 'Updated'} RootRouter MCP block in ${configPath}`,
+    agentsMd,
   };
 }
 
@@ -133,7 +234,7 @@ export function proxyEnvSnippet(paths: InitPaths): string {
     'export ROOTROUTER_REPO_PATH="' + paths.repoPath + '"',
     'export ROOTROUTER_MIN_TOKENS_TO_FILTER=6000',
     'export ROOTROUTER_CONTEXT_BUDGET=4000',
-    '# npx rootrouter-proxy',
+    '# npx -p @rootrouter/proxy@beta rootrouter-proxy',
     '# Point your agent base_url at http://localhost:8787 (path depends on provider)',
   ].join('\n');
 }

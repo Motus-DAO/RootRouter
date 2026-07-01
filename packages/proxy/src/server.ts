@@ -10,6 +10,8 @@ import * as http from 'http';
 import { Readable } from 'stream';
 import { filterMessages, type ChatMessage } from './filter.js';
 import { getEngine, initEngine, resolveStorePath } from './engine.js';
+import { applyLightweightModelRouting } from './lightweightRouter.js';
+import { getProxyRoutingConfig, isModelRoutingEnabled } from './routingConfig.js';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const UPSTREAM_ORIGIN = (process.env.ROOTROUTER_UPSTREAM_ORIGIN ?? 'https://openrouter.ai').replace(/\/$/, '');
@@ -20,6 +22,13 @@ const STORE_SHARE = process.env.ROOTROUTER_STORE_SHARE
   ? Number(process.env.ROOTROUTER_STORE_SHARE)
   : 0.5;
 const BASELINE_WINDOW = Number(process.env.ROOTROUTER_BASELINE_WINDOW ?? 20);
+const MODEL_ROUTING_ENABLED = isModelRoutingEnabled();
+
+interface ChatCompletionBody {
+  model?: string;
+  messages?: ChatMessage[];
+  [key: string]: unknown;
+}
 
 const HOP_BY_HOP = new Set([
   'connection',
@@ -55,6 +64,19 @@ function buildForwardHeaders(req: http.IncomingMessage, bodyLen: number): Record
     headers[k] = Array.isArray(v) ? v.join(', ') : v;
   }
   headers['content-length'] = String(bodyLen);
+  // Node fetch auto-decompresses; avoid upstream gzip so streamed bodies stay consistent.
+  headers['accept-encoding'] = 'identity';
+  return headers;
+}
+
+/** fetch() decompresses bodies but may leave content-encoding — strip before piping to clients. */
+function copyUpstreamResponseHeaders(upstream: Response): Record<string, string> {
+  const headers: Record<string, string> = {};
+  upstream.headers.forEach((value, key) => {
+    const lower = key.toLowerCase();
+    if (HOP_BY_HOP.has(lower) || lower === 'content-encoding') return;
+    headers[key] = value;
+  });
   return headers;
 }
 
@@ -64,6 +86,7 @@ async function handle(req: http.IncomingMessage, res: http.ServerResponse): Prom
   if (req.method === 'GET' && (url === '/healthz' || url === '/')) {
     const engine = getEngine();
     const stats = engine.stats();
+    const routingConfig = MODEL_ROUTING_ENABLED ? getProxyRoutingConfig(UPSTREAM_ORIGIN) : null;
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(
       JSON.stringify({
@@ -73,6 +96,8 @@ async function handle(req: http.IncomingMessage, res: http.ServerResponse): Prom
         storePath: resolveStorePath(),
         storeItems: stats.items,
         stateful: true,
+        modelRouting: MODEL_ROUTING_ENABLED,
+        modelCatalog: routingConfig?.modelCatalog ?? 'off',
       })
     );
     return;
@@ -82,16 +107,22 @@ async function handle(req: http.IncomingMessage, res: http.ServerResponse): Prom
   let outBody: Buffer = rawBody;
   let savedHeader = '0';
   let storeRecalledHeader = '0';
+  let modelSelectedHeader = '';
+  let tierHeader = '';
 
   const disabled = (req.headers['x-rootrouter-disable'] ?? '').toString().toLowerCase() === 'true';
   const agentId = (req.headers['x-rootrouter-agent-id'] ?? 'default').toString();
   const recallFeedbackHeader = (req.headers['x-rootrouter-recall-feedback'] ?? '')
     .toString()
     .toLowerCase();
+  const forceModel =
+    (req.headers['x-rootrouter-force-model'] ?? '').toString().toLowerCase() === 'true';
 
   if (isChatCompletions(req) && rawBody.length > 0 && !disabled) {
     try {
-      const parsed = JSON.parse(rawBody.toString('utf8')) as { messages?: ChatMessage[] };
+      const parsed = JSON.parse(rawBody.toString('utf8')) as ChatCompletionBody;
+      let bodyMutated = false;
+
       if (Array.isArray(parsed.messages)) {
         const budgetHeader = req.headers['x-rootrouter-budget'];
         const contextBudget = budgetHeader ? Number(budgetHeader) || CONTEXT_BUDGET : CONTEXT_BUDGET;
@@ -117,7 +148,7 @@ async function handle(req: http.IncomingMessage, res: http.ServerResponse): Prom
 
         if (outcome.filtered) {
           parsed.messages = outcome.messages;
-          outBody = Buffer.from(JSON.stringify(parsed), 'utf8');
+          bodyMutated = true;
           savedHeader = String(outcome.tokensSaved);
           storeRecalledHeader = String(outcome.storeRecalled ?? 0);
           const droppedMsg =
@@ -134,12 +165,31 @@ async function handle(req: http.IncomingMessage, res: http.ServerResponse): Prom
               `store recalled ${outcome.storeRecalled ?? 0})${droppedMsg}${droppedStore}`
           );
         } else {
-          // Still persisted turns even when below trim threshold.
           await getEngine().save();
         }
+
+        if (MODEL_ROUTING_ENABLED) {
+          const routing = applyLightweightModelRouting({
+            messages: parsed.messages,
+            agentId,
+            config: getProxyRoutingConfig(UPSTREAM_ORIGIN),
+            forceModel,
+          });
+          if (routing?.applied) {
+            parsed.model = routing.modelId;
+            modelSelectedHeader = routing.modelId;
+            tierHeader = routing.tier;
+            bodyMutated = true;
+            console.error(`[rootrouter-proxy] model routing: ${routing.reasoning}`);
+          }
+        }
+      }
+
+      if (bodyMutated) {
+        outBody = Buffer.from(JSON.stringify(parsed), 'utf8');
       }
     } catch (err) {
-      console.error('[rootrouter-proxy] filter skipped:', err instanceof Error ? err.message : String(err));
+      console.error('[rootrouter-proxy] transform skipped:', err instanceof Error ? err.message : String(err));
       outBody = rawBody;
     }
   }
@@ -162,13 +212,13 @@ async function handle(req: http.IncomingMessage, res: http.ServerResponse): Prom
     return;
   }
 
-  const respHeaders: Record<string, string> = {};
-  upstream.headers.forEach((value, key) => {
-    if (HOP_BY_HOP.has(key.toLowerCase())) return;
-    respHeaders[key] = value;
-  });
+  const respHeaders = copyUpstreamResponseHeaders(upstream);
   respHeaders['x-rootrouter-tokens-saved'] = savedHeader;
   respHeaders['x-rootrouter-store-recalled'] = storeRecalledHeader;
+  if (modelSelectedHeader) {
+    respHeaders['x-rootrouter-model-selected'] = modelSelectedHeader;
+    respHeaders['x-rootrouter-tier'] = tierHeader;
+  }
 
   res.writeHead(upstream.status, respHeaders);
 
@@ -191,7 +241,10 @@ async function main() {
 
   server.listen(PORT, () => {
     console.error(`[rootrouter-proxy] listening on http://localhost:${PORT} -> ${UPSTREAM_ORIGIN}`);
-    console.error(`[rootrouter-proxy] store=${resolveStorePath()} contextBudget=${CONTEXT_BUDGET} storeShare=${STORE_SHARE}`);
+    console.error(
+      `[rootrouter-proxy] store=${resolveStorePath()} contextBudget=${CONTEXT_BUDGET} ` +
+        `storeShare=${STORE_SHARE} modelRouting=${MODEL_ROUTING_ENABLED}`
+    );
   });
 }
 

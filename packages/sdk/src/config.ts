@@ -1,11 +1,15 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
-import { RouterConfig, BootValidationResult } from './types';
+import { RouterConfig, BootValidationResult, ModelCatalogMode, ModelTier } from './types';
 
 dotenv.config();
 
 function env(key: string, fallback: string): string {
   return process.env[key] ?? fallback;
+}
+
+function envWasSet(key: string): boolean {
+  return process.env[key] !== undefined && process.env[key] !== '';
 }
 
 function envNum(key: string, fallback: number): number {
@@ -19,6 +23,29 @@ function envBool(key: string, fallback: boolean): boolean {
   const val = process.env[key];
   if (val === undefined) return fallback;
   return val.toLowerCase() === 'true' || val === '1';
+}
+
+function parseModelCatalog(): ModelCatalogMode {
+  const raw = process.env.MODEL_CATALOG?.trim().toLowerCase();
+  if (!raw || raw === 'off' || raw === 'false' || raw === '0') return 'off';
+  if (raw === 'auto') return 'auto';
+  if (raw === 'venice') return 'venice';
+  if (raw === 'openrouter') return 'openrouter';
+  return 'off';
+}
+
+function parseVenicePrivacy(): 'private' | 'anonymized' {
+  const raw = process.env.VENICE_PRIVACY?.trim().toLowerCase();
+  if (raw === 'anonymized') return 'anonymized';
+  return 'private';
+}
+
+function buildModelTierOverrides(): Partial<Record<ModelTier, boolean>> {
+  const overrides: Partial<Record<ModelTier, boolean>> = {};
+  if (envWasSet('MODEL_FAST')) overrides.fast = true;
+  if (envWasSet('MODEL_BALANCED')) overrides.balanced = true;
+  if (envWasSet('MODEL_POWERFUL')) overrides.powerful = true;
+  return overrides;
 }
 
 /** Default max context tokens when SAFE_MODE is true */
@@ -60,6 +87,10 @@ export function loadConfig(overrides?: Partial<RouterConfig>): RouterConfig {
 
     llmBaseUrl: env('LLM_BASE_URL', 'https://openrouter.ai/api/v1'),
     llmApiKey: env('LLM_API_KEY', ''),
+
+    modelCatalog: parseModelCatalog(),
+    modelTierOverrides: buildModelTierOverrides(),
+    venicePrivacy: parseVenicePrivacy(),
 
     celoRpcUrl: env('CELO_RPC_URL', 'https://alfajores-forno.celo-testnet.org'),
     celoPrivateKey: env('CELO_PRIVATE_KEY', ''),

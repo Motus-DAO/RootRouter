@@ -13,10 +13,10 @@ interaction graphs, and symmetry-aware context filtering.**
 *Verifiable on-chain analytics on Celo · ERC-8004 compatible*
 
 [![Celo Hackathon](https://img.shields.io/badge/Celo-Hackathon_2026-35D07F?style=for-the-badge&logo=celo)](https://celo.org)
-[![Track](https://img.shields.io/badge/Track-Best_Agent_Infra-blue?style=for-the-badge)](https://github.com/Motus-DAO/RootRouter)
+[![Track](https://img.shields.io/badge/Track-Best_Agent_Infra-blue?style=for-the-badge)](https://github.com/RootRouter/RootRouter)
 [![npm version](https://img.shields.io/npm/v/rootrouter?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/rootrouter)
 [![npm downloads](https://img.shields.io/npm/dm/rootrouter?style=for-the-badge&logo=npm)](https://www.npmjs.com/package/rootrouter)
-[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](https://github.com/Motus-DAO/RootRouter/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](https://github.com/RootRouter/RootRouter/blob/main/LICENSE)
 [![Live Demo](https://img.shields.io/badge/Live-root--router.vercel.app-black?style=for-the-badge)](https://root-router.vercel.app)
 
 > 📄 Backed by two working papers on algebraic AI architecture and graph-theoretic agent topology — see [The Math](#the-math)
@@ -93,7 +93,7 @@ npm install rootrouter
 
 > Also available on npm: [npmjs.com/package/rootrouter](https://www.npmjs.com/package/rootrouter)
 
-The published package includes the built SDK (`dist/`), TypeScript types, and this README. Demos and dashboard live in the [GitHub repo](https://github.com/Motus-DAO/RootRouter); run them after cloning.
+The published package includes the built SDK (`dist/`), TypeScript types, and this README. Demos and dashboard live in the [GitHub repo](https://github.com/RootRouter/RootRouter); run them after cloning.
 
 ## Usage
 
@@ -125,7 +125,7 @@ That's it. Wire in your LLM and Celo env vars, then use `router.chat()` instead 
 ## Quick Start
 
 ```bash
-git clone https://github.com/Motus-DAO/RootRouter.git
+git clone https://github.com/RootRouter/RootRouter.git
 cd RootRouter
 npm install
 

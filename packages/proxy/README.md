@@ -69,12 +69,84 @@ client = OpenAI(base_url="http://localhost:8787/v1", api_key=OPENAI_KEY)
 
 Set `ROOTROUTER_UPSTREAM_ORIGIN` to the provider origin and use the provider's normal path under the proxy host.
 
+### Venice
+
+```bash
+ROOTROUTER_UPSTREAM_ORIGIN=https://api.venice.ai npm run proxy:start
+```
+
+```python
+client = OpenAI(base_url="http://localhost:8787/api/v1", api_key=VENICE_API_KEY)
+```
+
+### Venice with model routing
+
+```bash
+ROOTROUTER_MODEL_ROUTING=true \
+MODEL_CATALOG=venice \
+VENICE_PRIVACY=private \
+ROOTROUTER_UPSTREAM_ORIGIN=https://api.venice.ai \
+npm run proxy:start
+```
+
+```python
+client = OpenAI(base_url="http://localhost:8787/api/v1", api_key=VENICE_API_KEY)
+# model field is rewritten by proxy unless x-rootrouter-force-model: true
+```
+
+## Model routing (lightweight)
+
+Opt-in HTTP model routing without chambers or embeddings (~1ms overhead). Reuses SDK `detectCapabilities` and `resolveModelForRouting`.
+
+### Activation
+
+```bash
+ROOTROUTER_MODEL_ROUTING=true
+MODEL_CATALOG=auto          # or venice | openrouter | off (uses MODEL_* tiers only)
+ROOTROUTER_UPSTREAM_ORIGIN=https://api.venice.ai
+VENICE_PRIVACY=private      # when using Venice catalog
+```
+
+### Tier heuristic
+
+Per `x-rootrouter-agent-id`, in-memory rolling stats only:
+
+| Signal | Tier bias |
+|--------|-----------|
+| Short query, low token count | `fast` |
+| Medium complexity | `balanced` |
+| Code/reasoning keywords, high tokens | `powerful` |
+
+Capabilities: `detectCapabilities(messages)` from request body (vision parts, keywords).
+
+Resolver: `resolveModelForRouting(config, { tier, capabilities })` → rewrite `body.model` before upstream forward.
+
+### Response headers
+
+- `x-rootrouter-model-selected` — model ID sent upstream
+- `x-rootrouter-tier` — `fast` | `balanced` | `powerful`
+
+### Opt-out per request
+
+- Header `x-rootrouter-force-model: true` → keep client `model` unchanged
+
+### Not included (future: `ROOTROUTER_MODEL_ROUTING=full`)
+
+- `StructuredVectorSpace` / chamber refit (SDK-parity routing, higher latency)
+- Do not stack SDK `RootRouter.chat()` and proxy on the same call (double context trim)
+
+Implementation: [`src/lightweightRouter.ts`](src/lightweightRouter.ts), [`src/routingConfig.ts`](src/routingConfig.ts).
+
 ## Configuration (env)
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `PORT` | `8787` | Port the proxy listens on |
 | `ROOTROUTER_UPSTREAM_ORIGIN` | `https://openrouter.ai` | Origin to forward to (path is preserved) |
+| `ROOTROUTER_MODEL_ROUTING` | `false` | Enable lightweight model tier + catalog routing |
+| `MODEL_CATALOG` | `off` | `off` \| `auto` \| `venice` \| `openrouter` (same as SDK) |
+| `MODEL_FAST` / `MODEL_BALANCED` / `MODEL_POWERFUL` | SDK defaults | Per-tier override when catalog active; sole source when `off` |
+| `VENICE_PRIVACY` | `private` | Venice catalog privacy preference |
 | `ROOTROUTER_STORE_PATH` | `~/.rootrouter/store.json` | Persistent cross-session context store |
 | `ROOTROUTER_STORE_SHARE` | `0.5` | Fraction of `contextBudget` for store recall vs in-request |
 | `ROOTROUTER_MAX_ITEMS` | unbounded | Cap stored items (oldest evicted) |
@@ -95,6 +167,7 @@ Set `ROOTROUTER_UPSTREAM_ORIGIN` to the provider origin and use the provider's n
 | `x-rootrouter-budget: <n>` | Override the context token budget for this request |
 | `x-rootrouter-agent-id: <id>` | Scope store recall/recording per agent (default `default`) |
 | `x-rootrouter-recall-feedback: down` | Thumbs-down hook: log dropped turns as bad recall signal |
+| `x-rootrouter-force-model: true` | Skip model routing rewrite for this request |
 
 ## Response headers
 
@@ -102,6 +175,24 @@ Set `ROOTROUTER_UPSTREAM_ORIGIN` to the provider origin and use the provider's n
 |--------|---------|
 | `x-rootrouter-tokens-saved` | Tokens removed from the prompt for this request |
 | `x-rootrouter-store-recalled` | Turns injected from the persistent store |
+| `x-rootrouter-model-selected` | Model ID chosen by routing (when `ROOTROUTER_MODEL_ROUTING=true`) |
+| `x-rootrouter-tier` | Tier chosen: `fast`, `balanced`, or `powerful` |
+
+Quick check:
+
+```bash
+curl -i http://localhost:8787/healthz
+# then inspect x-rootrouter-tokens-saved / x-rootrouter-store-recalled on chat responses
+```
+
+Codex full-stack one-liner (shared MCP + proxy store):
+
+```bash
+npx rootrouter@beta init codex --local-embeddings && \
+ROOTROUTER_STORE_PATH="$HOME/.rootrouter/store.json" \
+ROOTROUTER_REPO_PATH="$(pwd)" \
+npx -p @rootrouter/proxy@beta rootrouter-proxy
+```
 
 ## Health check
 
@@ -112,6 +203,33 @@ curl http://localhost:8787/healthz
 
 ## Caveats
 
-- Trimming is stateless per request: it selects among the turns already in the request body. It does not pull in external memory (use `@rootrouter/mcp` for that).
+- Trimming is **stateful** by default: turns are recorded in `ROOTROUTER_STORE_PATH` and recalled across requests. Prior in-request turns are also filtered within the token budget.
+- For explicit control (record/select without a proxy), use `@rootrouter/mcp` instead.
 - Local TF-IDF relevance is keyword-oriented. For semantically harder cases, set `EMBEDDING_API_KEY` to use real embeddings.
 - The default `minTokensToFilter` (6000) means small prompts pass through untouched — trimming only kicks in once a prompt is actually large.
+
+┌─────────────────────────────────────────────────────────────┐
+│  APPLICATION LAYER (you build this)                         │
+│    MotusDAO swarm · your backend agents · solopreneur bots  │
+└─────────────────────────────────────────────────────────────┘
+         │                    │                    │
+         ▼                    ▼                    ▼
+┌──────────────┐    ┌──────────────┐    ┌──────────────────────┐
+│  RootRouter  │    │ @rootrouter/ │    │  @rootrouter/mcp     │
+│  class       │    │ proxy        │    │  (stdio tools)       │
+│  (swarm.ts)  │    │ (HTTP)       │    │                      │
+└──────┬───────┘    └──────┬───────┘    └──────────┬───────────┘
+       │                   │                         │
+       └───────────────────┴─────────────────────────┘
+                           │
+                           ▼
+              ┌────────────────────────┐
+              │  rootrouter SDK (npm)  │  ← THE ENGINE
+              │  ContextEngine         │
+              │  selectContext + MMR   │
+              │  RepoGraph / indexRepo │
+              │  RootPair + chambers   │
+              │  AgentTopologyGraph    │
+              │  ModelRouter           │
+              │  Celo telemetry        │
+              └────────────────────────┘

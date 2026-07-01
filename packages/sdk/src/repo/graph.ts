@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import * as path from 'path';
 import { chunkFileContent } from './chunk';
 import { extractImports, resolveImportToRelative } from './imports';
 import type { RepoNodeMetadata } from './types';
@@ -13,18 +14,31 @@ export interface ChunkNode {
   imports: string[];
 }
 
-/** Stable chunk id from repo-relative path and line range. */
-export function chunkId(relativePath: string, startLine: number, endLine: number): string {
+/** Stable namespace for a repository root (prevents cross-repo chunk id collisions). */
+export function repoNamespace(rootPath: string): string {
+  const normalized = path.resolve(rootPath).replace(/\\/g, '/');
+  return createHash('sha256').update(normalized).digest('hex').slice(0, 16);
+}
+
+/** Stable chunk id from repo namespace + relative path + line range. */
+export function chunkId(
+  repoNs: string,
+  relativePath: string,
+  startLine: number,
+  endLine: number
+): string {
   return createHash('sha256')
-    .update(`${relativePath}:${startLine}:${endLine}`)
+    .update(`${repoNs}:${relativePath}:${startLine}:${endLine}`)
     .digest('hex')
     .slice(0, 24);
 }
 
 export function buildChunkNodes(
   files: ScannedFile[],
-  options: { maxChunkTokens: number; agentId?: string }
+  options: { maxChunkTokens: number; agentId?: string; rootPath: string }
 ): ChunkNode[] {
+  const repoNs = repoNamespace(options.rootPath);
+  const repoRoot = path.resolve(options.rootPath).replace(/\\/g, '/');
   const nodes: ChunkNode[] = [];
 
   for (const file of files) {
@@ -32,10 +46,11 @@ export function buildChunkNodes(
     const community = directoryCommunity(file.relativePath);
 
     for (const chunk of chunks) {
-      const id = chunkId(file.relativePath, chunk.startLine, chunk.endLine);
+      const id = chunkId(repoNs, file.relativePath, chunk.startLine, chunk.endLine);
       const imports = extractImports(chunk.text, file.language);
       const metadata: RepoNodeMetadata = {
         nodeType: 'file_chunk',
+        repoRoot,
         path: file.relativePath,
         language: file.language,
         startLine: chunk.startLine,

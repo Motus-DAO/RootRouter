@@ -37,6 +37,12 @@ function buildBaseProviderFromEnv(): EmbeddingProvider {
     return new LocalOnnxEmbeddingProvider(model);
   }
 
+  // An explicit local choice must win over ambient API credentials. This keeps
+  // generated MCP configs deterministic and avoids placeholder keys forcing API mode.
+  if (explicit === 'tfidf') {
+    return new TfIdfEmbeddingProvider();
+  }
+
   if (explicit === 'api' || apiKey) {
     if (!apiKey) {
       throw new Error('EMBEDDING_PROVIDER=api requires EMBEDDING_API_KEY');
@@ -49,7 +55,7 @@ function buildBaseProviderFromEnv(): EmbeddingProvider {
     });
   }
 
-  if (explicit === 'tfidf' || !explicit) {
+  if (!explicit) {
     return new TfIdfEmbeddingProvider();
   }
 

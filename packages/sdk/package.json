@@ -14,7 +14,7 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "files": ["dist", "README.md", "LICENSE", "NOTICE", "COMMERCIAL.md", "BETA.md"],
+  "files": ["dist", "templates", "README.md", "LICENSE", "NOTICE", "COMMERCIAL.md", "BETA.md"],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepublishOnly": "node ../../scripts/sync-legal.mjs && npm run build",
@@ -22,7 +22,7 @@
     "demo:basic": "tsx demo/basic.ts",
     "demo:swarm": "tsx demo/swarm.ts",
     "demo:benchmark": "tsx demo/benchmark.ts",
-    "test": "tsx test/math.test.ts && tsx test/select.test.ts && tsx test/repo.test.ts && tsx test/benchmark.test.ts",
+    "test": "tsx test/math.test.ts && tsx test/select.test.ts && tsx test/repo.test.ts && tsx test/models.test.ts && tsx test/benchmark.test.ts",
     "test:e2e": "tsx test/chat-pipeline.e2e.ts",
     "test:all": "npm run test && npm run test:e2e",
     "deploy:contract": "tsx scripts/deploy.ts",
@@ -33,11 +33,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Motus-DAO/RootRouter.git",
+    "url": "git+https://github.com/RootRouter/RootRouter.git",
     "directory": "packages/sdk"
   },
-  "homepage": "https://github.com/Motus-DAO/RootRouter#readme",
-  "bugs": "https://github.com/Motus-DAO/RootRouter/issues",
+  "homepage": "https://github.com/RootRouter/RootRouter#readme",
+  "bugs": "https://github.com/RootRouter/RootRouter/issues",
   "publishConfig": {
     "access": "public"
   },

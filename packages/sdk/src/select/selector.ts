@@ -13,6 +13,8 @@ import {
   DEFAULT_ANN_PREFETCH_K,
   DEFAULT_ANN_THRESHOLD,
 } from './ann/hnswIndex';
+import { filterCandidatesByPath, itemPath } from './pathFilter';
+import { pathMentionedInSpec } from '../spec/buildQueryFromSpec';
 
 const DEFAULT_MMR_LAMBDA = 0.7;
 const DEFAULT_CHAMBER_BOOST = 0.15;
@@ -21,6 +23,7 @@ const DEFAULT_GRAPH_SEED_K = 3;
 const DEFAULT_HUB_BOOST = 0.05;
 const DEFAULT_MAX_PER_COMMUNITY = 2;
 const DEFAULT_WINDOW_SIZE = 20;
+const DEFAULT_SPEC_BOOST = 0.12;
 
 interface ScoredCandidate {
   item: ContextItem;
@@ -69,9 +72,18 @@ export class ContextSelector {
 
     if (candidates.length === 0) return emptyResult();
 
+    const { filtered: pathScoped, pathFiltered } = filterCandidatesByPath(
+      candidates,
+      options.pathPrefix,
+      options.excludePaths
+    );
+    if (pathScoped.length === 0) {
+      return emptyResult('No candidates remain after path filter.');
+    }
+
     const queryVector = await this.provider.embed(query);
     const { pool, annPrefilteredFrom } = await this.prepareCandidatePool(
-      candidates,
+      pathScoped,
       queryVector,
       annThreshold,
       annPrefetchK
@@ -90,6 +102,8 @@ export class ContextSelector {
       graphSeedK,
       hubBoost,
     });
+
+    const specBoostedCount = applySpecBoost(scored, options);
 
     const { selected, scores, chamberBoosted } = this.runMmr(
       scored,
@@ -122,6 +136,8 @@ export class ContextSelector {
         graphBoosted: graphBoostedCount,
         mmrLambda,
         annPrefilteredFrom,
+        pathFiltered,
+        specBoosted: specBoostedCount,
       }),
       breakdown: {
         candidates: scored.length,
@@ -130,6 +146,8 @@ export class ContextSelector {
         chamberBoosted,
         graphBoosted: graphBoostedCount,
         ...(annPrefilteredFrom !== undefined ? { annPrefilteredFrom } : {}),
+        ...(pathFiltered > 0 ? { pathFiltered } : {}),
+        ...(specBoostedCount > 0 ? { specBoosted: specBoostedCount } : {}),
       },
       droppedIds,
     };
@@ -338,6 +356,25 @@ function applyGraphBoost(
   return boosted;
 }
 
+function applySpecBoost(scored: ScoredCandidate[], options: SelectionOptions): number {
+  const specPaths = options.specPaths;
+  if (!specPaths || specPaths.length === 0) return 0;
+
+  const boost = options.specBoost ?? DEFAULT_SPEC_BOOST;
+  if (boost <= 0) return 0;
+
+  let boosted = 0;
+  for (const s of scored) {
+    const p = itemPath(s.item);
+    if (!p) continue;
+    if (pathMentionedInSpec(p, specPaths)) {
+      s.base += boost;
+      boosted++;
+    }
+  }
+  return boosted;
+}
+
 function clamp(x: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, x));
 }
@@ -366,12 +403,20 @@ function buildReasoning(p: {
   graphBoosted: number;
   mmrLambda: number;
   annPrefilteredFrom?: number;
+  pathFiltered?: number;
+  specBoosted?: number;
 }): string {
   const parts = [
     `Selected ${p.selected}/${p.candidates} items (${p.tokensOut} tokens, budget ${p.tokenBudget}).`,
     `Saved ~${p.percentSaved.toFixed(1)}% vs baseline.`,
     `MMR lambda ${p.mmrLambda.toFixed(2)}.`,
   ];
+  if (p.pathFiltered !== undefined && p.pathFiltered > 0) {
+    parts.push(`Path filter removed ${p.pathFiltered} candidate(s).`);
+  }
+  if (p.specBoosted !== undefined && p.specBoosted > 0) {
+    parts.push(`${p.specBoosted} spec-anchor boosted.`);
+  }
   if (p.annPrefilteredFrom !== undefined) {
     parts.push(`ANN prefiltered from ${p.annPrefilteredFrom}.`);
   }
@@ -380,7 +425,7 @@ function buildReasoning(p: {
   return parts.join(' ');
 }
 
-function emptyResult(): SelectionResult {
+function emptyResult(reason = 'No candidates provided.'): SelectionResult {
   return {
     selected: [],
     scores: {},
@@ -388,7 +433,7 @@ function emptyResult(): SelectionResult {
     tokensOut: 0,
     tokensSaved: 0,
     percentSaved: 0,
-    reasoning: 'No candidates provided.',
+    reasoning: reason,
     breakdown: { candidates: 0, selected: 0, droppedByBudget: 0, chamberBoosted: 0, graphBoosted: 0 },
     droppedIds: [],
   };

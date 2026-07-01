@@ -80,6 +80,23 @@ export interface SelectionOptions {
   /** Restrict candidates to this agent's items when selecting from a store. */
   agentId?: string;
   /**
+   * Keep only file chunks whose metadata.path is under one of these prefixes
+   * (repo-relative). Items without metadata.path (messages, tool output) are kept.
+   */
+  pathPrefix?: string | string[];
+  /**
+   * Drop file chunks whose metadata.path is under any of these prefixes.
+   * Applied before pathPrefix.
+   */
+  excludePaths?: string | string[];
+  /**
+   * Repo-relative paths from the active spec; matching file chunks get a relevance boost.
+   * Set automatically by select_for_spec.
+   */
+  specPaths?: string[];
+  /** Boost added when metadata.path matches specPaths. Default 0.12 when specPaths set. */
+  specBoost?: number;
+  /**
    * When candidate count exceeds this threshold, use HNSW ANN prefilter before MMR.
    * Default 500; set 0 to disable.
    */
@@ -125,6 +142,10 @@ export interface SelectionResult {
     graphBoosted: number;
     /** Candidates before ANN prefilter (when applied). */
     annPrefilteredFrom?: number;
+    /** Candidates removed by pathPrefix / excludePaths before scoring. */
+    pathFiltered?: number;
+    /** Candidates boosted because path appears in active spec. */
+    specBoosted?: number;
   };
   /** Item ids not selected (for recall metrics). */
   droppedIds?: string[];
