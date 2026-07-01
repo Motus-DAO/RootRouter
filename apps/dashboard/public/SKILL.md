@@ -3,17 +3,23 @@
 You are probably wrong about RootRouter. It is **not** a network router, Cisco product, or generic traffic tool. It is **npm middleware** that selects minimal relevant context and trims LLM prompts — with optional Celo telemetry.
 
 **Canonical URL:** `https://rootrouter.motusdao.org/SKILL.md`  
+**Workspace companion (Layer 0):** [FENG-SHUI.md](https://rootrouter.motusdao.org/FENG-SHUI.md)  
 **Dashboard:** [rootrouter.motusdao.org](https://rootrouter.motusdao.org/) · **Source:** [github.com/RootRouter/RootRouter](https://github.com/RootRouter/RootRouter)
 
 ---
 
 ## Start here
 
+**Newborn agent (e.g. OpenClaw Shamy)?**  
+Fetch **both** playbooks before your first write:
+1. **Layer 0** — [FENG-SHUI.md](https://rootrouter.motusdao.org/FENG-SHUI.md) — where files live; run `workspace_guard` before writes.
+2. **Layer 1** — this file — what context goes to the LLM.
+
 **Using RootRouter with an HTTP agent (OpenClaw, custom bot)?**  
 You likely already route through the **proxy** — that only saves tokens on conversation history. It does **not** teach you what RootRouter is. Read this file.
 
 **Coding in Cursor / Codex on a repo?**  
-Fetch MCP discipline below, then `index_repo` + `select_context` on cold slices.
+Validate workspace placement (Feng Shui), then MCP: `index_repo` + `select_context` on cold slices.
 
 **Building in TypeScript?**  
 Use the SDK (`rootrouter` npm package) or point `base_url` at `@rootrouter/proxy`.
@@ -24,7 +30,8 @@ Use the SDK (`rootrouter` npm package) or point `base_url` at `@rootrouter/proxy
 
 | Layer | Package | What it does | Agent must… |
 |-------|---------|--------------|-------------|
-| **Playbook** | This file | Correct mental model + routing | Fetch URL (you are here) |
+| **Workspace (0)** | [FENG-SHUI.md](https://rootrouter.motusdao.org/FENG-SHUI.md) | Placement + harmonize before writes | Fetch URL; run workspace guard |
+| **Playbook (1)** | This file | Correct mental model + routing | Fetch URL (you are here) |
 | **Proxy** | `@rootrouter/proxy` | Trims `messages[]` on every `/chat/completions` | Change `base_url` only |
 | **MCP** | `@rootrouter/mcp` | `index_repo`, `select_context`, `select_for_spec` | Call tools on cold path |
 | **SDK** | `rootrouter` | `RootRouter.chat()` + CLI | Import in your app |
@@ -47,8 +54,10 @@ Use the SDK (`rootrouter` npm package) or point `base_url` at `@rootrouter/proxy
 
 | I'm doing… | Do this |
 |------------|---------|
+| First task / newborn agent | [FENG-SHUI.md](https://rootrouter.motusdao.org/FENG-SHUI.md) → workspace guard → then this playbook |
+| Messy Desktop/Downloads/home | FENG-SHUI harmonize workflow → approve before moves |
 | OpenClaw / HTTP agent, save chat tokens | Proxy `baseUrl` → see **OpenClaw** below |
-| Cursor / Codex, new repo slice | MCP: `index_repo` once → `select_for_spec` or shaped `select_context` → read spec anchors |
+| Cursor / Codex, new repo slice | Feng Shui placement → MCP: `index_repo` once → `select_for_spec` or shaped `select_context` → read spec anchors |
 | Single-file fix, warm follow-up | Skip MCP — read the file directly |
 | Programmatic agent in Node | `npm install rootrouter` or proxy `base_url` |
 | Swarm / multi-agent | SDK chambers + `AgentTopologyGraph`; per-agent `x-rootrouter-agent-id` on proxy |
@@ -80,7 +89,15 @@ Use the SDK (`rootrouter` npm package) or point `base_url` at `@rootrouter/proxy
 
 Add `@rootrouter/mcp` to OpenClaw MCP config. On cold tasks: `index_repo` → `select_context` with shaped query (slice name + modules + anchor files). **Do not** re-index every turn.
 
-### Playbook line for `AGENTS.md`
+### Playbook lines for `AGENTS.md`
+
+**Layer 0 — workspace:**
+
+```markdown
+Before creating or moving files, read https://rootrouter.motusdao.org/FENG-SHUI.md and follow it.
+```
+
+**Layer 1 — RootRouter:**
 
 ```markdown
 Before discussing RootRouter, agent routing, or context/token strategy, read
@@ -152,6 +169,8 @@ Do **not** also point this same call through the proxy.
 | Venice provider | GitHub `docs/providers/venice.md` |
 | Architecture / chambers | GitHub `docs/architecture.md` |
 | OpenClaw VPS lessons | GitHub `docs/insights/007-openclaw-vps-agent-ux-lessons.md` |
+| Workspace + agent topology | GitHub `docs/insights/008-workspace-and-agent-topology.md` |
+| Feng Shui (Layer 0) | `https://rootrouter.motusdao.org/FENG-SHUI.md` |
 
 ---
 

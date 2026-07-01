@@ -1,4 +1,4 @@
-# RootRouter dashboard + agent playbook (SKILL.md)
+# RootRouter dashboard + agent playbooks (SKILL.md, FENG-SHUI.md)
 # Install: sudo cp deploy/caddy/rootrouter.caddy /etc/caddy/sites/rootrouter.caddy
 #          sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy
 #
@@ -7,8 +7,9 @@
 rootrouter.motusdao.org {
 	encode gzip
 
-	# Agent playbook — same origin as dashboard (ethskills-style fetch URL)
-	# Served by Next from apps/dashboard/public/SKILL.md
+	# Agent playbooks — served by Next from apps/dashboard/public/
+	#   /SKILL.md      Layer 1 — context routing
+	#   /FENG-SHUI.md  Layer 0 — workspace placement
 
 	reverse_proxy rootrouter-dashboard:3000
 }

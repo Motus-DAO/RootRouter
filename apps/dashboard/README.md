@@ -1,6 +1,6 @@
 # RootRouter dashboard
 
-Next.js app for live Celo telemetry, topology snapshots, and the public agent playbook at `/SKILL.md`.
+Next.js app for live Celo telemetry, topology snapshots, and public agent playbooks at `/SKILL.md` and `/FENG-SHUI.md`.
 
 **Production:** VPS at [rootrouter.motusdao.org](https://rootrouter.motusdao.org) — see [`deploy/README.md`](../../deploy/README.md).  
 **Not on npm** — ships via Docker only; SDK (`rootrouter`) is separate.
@@ -36,6 +36,7 @@ Verify:
 
 ```bash
 curl -sI https://rootrouter.motusdao.org/SKILL.md
+curl -sI https://rootrouter.motusdao.org/FENG-SHUI.md
 curl -sI https://rootrouter.motusdao.org/
 ```
 
@@ -45,8 +46,10 @@ curl -sI https://rootrouter.motusdao.org/
 
 | Path | Purpose |
 |------|---------|
-| `/` | Landing + links |
-| `/SKILL.md` | Public agent playbook |
+| `/` | Landing + agent onboarding links |
+| `/FENG-SHUI.md` | Layer 0 — workspace placement playbook |
+| `/SKILL.md` | Layer 1 — RootRouter agent playbook |
+| `/feng-shui/scripts/*` | Workspace guard + inventory (static) |
 | `/dashboard` | Celo telemetry by agent address |
 | `/dashboard/topology` | Convex-backed graph snapshots |
 | `/api/snapshots` | POST for SDK demos / `rootrouter snapshot` |

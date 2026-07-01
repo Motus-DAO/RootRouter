@@ -3,6 +3,7 @@ import Image from 'next/image';
 import FAQAccordion from '../components/FAQAccordion';
 import HeroSnapshotGraphs from '../components/HeroSnapshotGraphs';
 import GetStartedSection from '../components/GetStartedSection';
+import AgentOnboardingSection from '../components/AgentOnboardingSection';
 
 export const metadata = {
   title: 'RootRouter — Algebraic Agent Infrastructure',
@@ -49,15 +50,17 @@ const stats = [
 ];
 
 const resources = [
-  { title: 'Agent SKILL.md', desc: 'Fetch this before using RootRouter', href: '/SKILL.md' },
+  { title: 'FENG-SHUI.md', desc: 'Layer 0 — workspace placement before first write', href: '/FENG-SHUI.md' },
+  { title: 'SKILL.md', desc: 'Layer 1 — context routing and MCP discipline', href: '/SKILL.md' },
   { title: 'Dashboard', desc: 'View telemetry and topology', href: '/dashboard' },
-  { title: 'Topology', desc: 'Agent and interaction graphs', href: '/dashboard/topology' },
+  { title: 'Topology', desc: 'Agent, interaction, and RepoGraph views', href: '/dashboard/topology' },
   { title: 'npm', desc: 'Install rootrouter', href: 'https://www.npmjs.com/package/rootrouter', external: true },
   { title: 'GitHub', desc: 'Source and demos', href: 'https://github.com/RootRouter/RootRouter', external: true },
 ];
 
 const footerLinks = [
   { href: '/', label: 'Home' },
+  { href: '/FENG-SHUI.md', label: 'FENG-SHUI.md' },
   { href: '/SKILL.md', label: 'SKILL.md' },
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/dashboard/topology', label: 'Topology' },
@@ -285,6 +288,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Agent onboarding: Layer 0 + Layer 1 playbooks */}
+      <AgentOnboardingSection />
 
       {/* How do I get started? – visible on scroll */}
       <GetStartedSection />
