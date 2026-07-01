@@ -183,7 +183,7 @@ log "Verify: curl -s http://127.0.0.1:${PROXY_PORT}/healthz"
 # --- Layer 1 playbook in Shamy workspace ---
 SHAMY_WORKSPACE="${SHAMY_WORKSPACE:-$HOME/data/shamy/workspace}"
 SHAMY_AGENTS="$SHAMY_WORKSPACE/AGENTS.md"
-PLAYBOOK_URL="https://root-router.vercel.app/SKILL.md"
+PLAYBOOK_URL="${ROOTROUTER_PUBLIC_URL:-https://rootrouter.motusdao.org}/SKILL.md"
 if [[ -f "$SHAMY_AGENTS" ]] && ! grep -q "$PLAYBOOK_URL" "$SHAMY_AGENTS" 2>/dev/null; then
   cat > /tmp/rootrouter-playbook-snippet.md << EOF
 

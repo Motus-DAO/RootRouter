@@ -17,3 +17,5 @@ packages/sdk/benchmarks/results/
 # Machine-local agent config (use docs/templates + init instead)
 .codex/
 AGENTS.md
+deploy/dashboard.env
+

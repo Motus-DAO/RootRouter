@@ -1,0 +1,14 @@
+# RootRouter dashboard + agent playbook (SKILL.md)
+# Install: sudo cp deploy/caddy/rootrouter.caddy /etc/caddy/sites/rootrouter.caddy
+#          sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy
+#
+# Requires rootrouter-dashboard on network openclaw_default (docker-compose.dashboard.yml).
+
+rootrouter.motusdao.org {
+	encode gzip
+
+	# Agent playbook — same origin as dashboard (ethskills-style fetch URL)
+	# Served by Next from apps/dashboard/public/SKILL.md
+
+	reverse_proxy rootrouter-dashboard:3000
+}

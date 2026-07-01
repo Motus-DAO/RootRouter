@@ -1,7 +1,7 @@
 # RootRouter — Celo Hackathon 2026 Submission
 
 **Track:** Best Agent Infra on Celo  
-**Live:** [root-router.vercel.app](https://root-router.vercel.app)  
+**Live:** [rootrouter.motusdao.org](https://rootrouter.motusdao.org)  
 **npm:** [npmjs.com/package/rootrouter](https://www.npmjs.com/package/rootrouter)  
 **Contract (Mainnet):** [`0x91aB56AbB4577B2B61Eed9A727cCb0D39896f0Ab`](https://explorer.celo.org/mainnet/address/0x91aB56AbB4577B2B61Eed9A727cCb0D39896f0Ab)
 
@@ -99,7 +99,7 @@ console.log(`Chamber: ${result.telemetry.chamberUsed}, Model: ${result.telemetry
 - **Reproducible benchmarks** — `npx tsx demo/benchmark.ts` prints the full comparison table
 - **Zero ML dependencies** — PCA, K-Means, TF-IDF all implemented from scratch in TypeScript; no Python, no NumPy, no sklearn
 - **TypeScript-native** — full types, CJS/ESM exports
-- **Live dashboard** — [root-router.vercel.app](https://root-router.vercel.app): paste any agent wallet address and inspect its chamber distribution, knowledge graph, agent topology, and token savings in real time
+- **Live dashboard** — [rootrouter.motusdao.org](https://rootrouter.motusdao.org): paste any agent wallet address and inspect its chamber distribution, knowledge graph, agent topology, and token savings in real time
 
 ---
 

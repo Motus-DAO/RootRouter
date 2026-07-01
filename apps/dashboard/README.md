@@ -2,13 +2,12 @@
 
 Next.js app for live Celo telemetry, topology snapshots, and the public agent playbook at `/SKILL.md`.
 
-**This app is not published to npm.** It lives in git for Vercel deployment only. The SDK (`rootrouter`) ships separately from `packages/sdk/`.
+**Production:** VPS at [rootrouter.motusdao.org](https://rootrouter.motusdao.org) — see [`deploy/README.md`](../../deploy/README.md).  
+**Not on npm** — ships via Docker only; SDK (`rootrouter`) is separate.
 
 ---
 
 ## Local dev
-
-From the monorepo root:
 
 ```bash
 npm install
@@ -16,76 +15,29 @@ npm run dashboard          # http://localhost:3000
 npm run dashboard:build    # production build
 ```
 
-Optional Convex: add `NEXT_PUBLIC_CONVEX_URL` to `apps/dashboard/.env.local`.
-
-Push snapshots from demos or CLI:
-
-```bash
-export DASHBOARD_URL=http://localhost:3000
-export ROOTROUTER_STORE_PATH=~/.rootrouter/store.json
-npx rootrouter snapshot
-```
+Optional Convex: `NEXT_PUBLIC_CONVEX_URL` in `apps/dashboard/.env.local`.
 
 ---
 
-## Vercel setup (step by step)
-
-Connect the **RootRouter/RootRouter** GitHub repo to a Vercel project, then:
-
-### 1. Root Directory (required)
-
-**Settings → General → Root Directory** → `apps/dashboard`
-
-Without this, Vercel builds from the repo root, runs the wrong command, and fails with:
-
-> The Next.js output directory ".next" was not found at "/vercel/path0/.next"
-
-### 2. Build settings (usually auto from `vercel.json`)
-
-This folder’s [`vercel.json`](./vercel.json) tells Vercel to install from the monorepo root and run `next build` inside this app:
-
-| Setting | Value |
-|---------|--------|
-| Framework Preset | Next.js |
-| Root Directory | `apps/dashboard` |
-| Install Command | `cd ../.. && npm install` |
-| Build Command | `npm run build` |
-| Output Directory | *(leave default — do not override)* |
-| Include files outside root | **Enabled** |
-
-**Important:** In Vercel → Settings → Build & Development, turn **off** any Build Command override that says `npm run dashboard:build`. That script only exists at the monorepo root; from `apps/dashboard` it fails and `.next` is never created.
-
-Deploy branch must include `apps/dashboard/vercel.json` and `public/SKILL.md` (use `main` after merge, or set Production Branch to `release/0.2.0-beta.0`).
-
-### 3. Environment variables
-
-**Settings → Environment Variables**
-
-| Variable | Required | Purpose |
-|----------|----------|---------|
-| `NEXT_PUBLIC_CONVEX_URL` | Recommended | Convex backend for topology snapshots |
-
-### 4. Branch
-
-Deploy `release/0.2.0-beta.0` or `main` — whichever branch you ship from.
-
-### 5. Verify after deploy
+## VPS deploy (default)
 
 ```bash
-curl -sI https://root-router.vercel.app/SKILL.md
-curl -sI https://root-router.vercel.app/
+# From dev machine
+export NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud  # optional
+npm run dashboard:deploy
+
+# On VPS
+bash ~/RootRouter/scripts/deploy-dashboard-vps.sh --local
 ```
 
----
+Then install Caddy site: `deploy/caddy/rootrouter.caddy` → reload Caddy.
 
-## How this stays separate from the SDK
+Verify:
 
-| Question | Answer |
-|----------|--------|
-| Can dashboard code end up on npm? | **No** — `@rootrouter/dashboard` has `"private": true`; `npm run publish:packages` only publishes `packages/sdk`, `packages/proxy`, `packages/mcp`. |
-| Does the SDK import the dashboard? | **No** — SDK only optionally `fetch()`es `DASHBOARD_URL/api/snapshots`. |
-| Should dashboard be in git? | **Yes** — Vercel deploys from GitHub; source must be committed. |
-| Is `.next/` committed? | **No** — listed in root `.gitignore`. |
+```bash
+curl -sI https://rootrouter.motusdao.org/SKILL.md
+curl -sI https://rootrouter.motusdao.org/
+```
 
 ---
 
@@ -94,7 +46,22 @@ curl -sI https://root-router.vercel.app/
 | Path | Purpose |
 |------|---------|
 | `/` | Landing + links |
-| `/SKILL.md` | Public agent playbook (static file in `public/`) |
+| `/SKILL.md` | Public agent playbook |
 | `/dashboard` | Celo telemetry by agent address |
 | `/dashboard/topology` | Convex-backed graph snapshots |
-| `/api/snapshots` | POST endpoint for SDK demos / `rootrouter snapshot` |
+| `/api/snapshots` | POST for SDK demos / `rootrouter snapshot` |
+
+---
+
+## Vercel (optional)
+
+Only if the GitHub repo is **public** or you have Vercel Pro (private repos). Root Directory: `apps/dashboard`. See [`vercel.json`](./vercel.json).
+
+---
+
+## SDK boundary
+
+| Question | Answer |
+|----------|--------|
+| On npm? | **No** — `"private": true` workspace package |
+| SDK imports dashboard? | **No** — optional `DASHBOARD_URL` HTTP only |

@@ -8,6 +8,7 @@ const repoRoot = path.resolve(__dirname, '../..');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
   turbopack: { root: repoRoot },
 };
 

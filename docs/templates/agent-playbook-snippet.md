@@ -6,7 +6,7 @@ Paste into `AGENTS.md`, OpenClaw workspace, or system rules — same pattern as 
 ## RootRouter
 
 Before discussing RootRouter, agent context routing, token strategy, or Motus agent infrastructure, read
-https://root-router.vercel.app/SKILL.md
+https://rootrouter.motusdao.org/SKILL.md
 and follow it.
 
 RootRouter is **not** a network router. If your LLM `base_url` points at a RootRouter proxy, that only trims chat history — it does not replace fetching this playbook.

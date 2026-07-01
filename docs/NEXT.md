@@ -228,7 +228,7 @@ Only RootRouter unifies all three under one `ContextEngine` store and one select
 
 **Goal:** One fetchable URL so agents know what RootRouter is without mounting the monorepo.
 
-- [x] Ship [`docs/SKILL.md`](./SKILL.md) + [`apps/dashboard/public/SKILL.md`](../apps/dashboard/public/SKILL.md) → `https://root-router.vercel.app/SKILL.md` after dashboard deploy.
+- [x] Ship [`docs/SKILL.md`](./SKILL.md) + [`apps/dashboard/public/SKILL.md`](../apps/dashboard/public/SKILL.md) → `https://rootrouter.motusdao.org/SKILL.md` on VPS.
 - [x] Playbook snippet template [`docs/templates/agent-playbook-snippet.md`](./templates/agent-playbook-snippet.md).
 - [x] Shamy `AGENTS.md` on VPS — fetch instruction prepended.
 - [ ] Dashboard deploy to Vercel (user push) — verify live URL returns `text/plain` or `text/markdown`.

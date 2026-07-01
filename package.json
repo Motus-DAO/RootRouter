@@ -23,6 +23,7 @@
     "deploy:contract": "npm run deploy:contract -w rootrouter",
     "dashboard": "npm run dev -w @rootrouter/dashboard",
     "dashboard:build": "npm run build -w @rootrouter/dashboard",
+    "dashboard:deploy": "bash scripts/deploy-dashboard-vps.sh",
     "dashboard:start": "npm run start -w @rootrouter/dashboard",
     "audit:mcp": "npm run build -w rootrouter && node packages/sdk/dist/cli/index.js audit"
   },

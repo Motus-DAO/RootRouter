@@ -17,7 +17,7 @@ interaction graphs, and symmetry-aware context filtering.**
 [![npm version](https://img.shields.io/npm/v/rootrouter?style=for-the-badge&logo=npm&color=CB3837)](https://www.npmjs.com/package/rootrouter)
 [![npm downloads](https://img.shields.io/npm/dm/rootrouter?style=for-the-badge&logo=npm)](https://www.npmjs.com/package/rootrouter)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](https://github.com/RootRouter/RootRouter/blob/main/LICENSE)
-[![Live Demo](https://img.shields.io/badge/Live-root--router.vercel.app-black?style=for-the-badge)](https://root-router.vercel.app)
+[![Live Demo](https://img.shields.io/badge/Live-rootrouter.motusdao.org-black?style=for-the-badge)](https://rootrouter.motusdao.org)
 
 > 📄 Backed by two working papers on algebraic AI architecture and graph-theoretic agent topology — see [The Math](#the-math)
 
@@ -173,7 +173,7 @@ npm run dashboard
 
 Open <http://localhost:3000>, enter the **agent address**, and click **Load from Celo** to fetch stats and recent entries from the contract.
 
-Or visit the live deployment: **[root-router.vercel.app](https://root-router.vercel.app)**
+Or visit the live deployment: **[rootrouter.motusdao.org](https://rootrouter.motusdao.org)**
 
 The dashboard shows:
 - **Chamber distribution** — which Weyl chambers the agent has operated in
@@ -336,7 +336,7 @@ RootRouter/
 │       ├── app/             # Routes: /, /dashboard, /dashboard/topology
 │       ├── public/SKILL.md  # Agent playbook → /SKILL.md on Vercel
 │       ├── convex/          # Topology snapshot backend
-│       └── vercel.json      # Monorepo install/build commands
+│       └── Dockerfile       # VPS Docker image (standalone Next.js)
 ├── contracts/
 │   └── RootRouterTelemetry.sol
 ├── docs/                    # Architecture, providers, insights, templates
@@ -350,7 +350,7 @@ RootRouter/
 | `packages/sdk` (`rootrouter`) | Yes | Yes (`npm publish`) | — |
 | `packages/proxy` | Yes | Yes | Self-host / Docker |
 | `packages/mcp` | Yes | Yes | Cursor / Codex via npx |
-| `apps/dashboard` | Yes | **No** (`"private": true`) | [Vercel](https://root-router.vercel.app) |
+| `apps/dashboard` | Yes | **No** (`"private": true`) | [VPS](https://rootrouter.motusdao.org) (`deploy/README.md`) |
 
 The SDK **does not bundle** the dashboard. Its `package.json` `files` field only includes `dist`, `templates`, and legal docs. Demos and `rootrouter snapshot` optionally **POST to** a running dashboard via `DASHBOARD_URL` — that is an HTTP integration, not a package dependency.
 
@@ -363,7 +363,7 @@ npm run dashboard:build    # Next.js → apps/dashboard/.next/
 npm run publish:packages   # SDK + proxy + MCP only (never dashboard)
 ```
 
-**Vercel:** set project **Root Directory** to `apps/dashboard`. See [`apps/dashboard/README.md`](./apps/dashboard/README.md).
+**Vercel:** optional if repo is public + Pro plan. **Default:** VPS — see [`deploy/README.md`](./deploy/README.md).
 
 **Split repo?** Not required. Keeping the dashboard here shares docs, `SKILL.md`, and release context with the SDK. Split only if you need a separate team, access control, or deploy cadence — the npm boundary already prevents accidental publishing.
 
