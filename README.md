@@ -320,35 +320,52 @@ RootRouter registers on the ERC-8004 Identity Registry on Celo, with capabilitie
 
 ## Project Structure
 
+Monorepo — **one git repo**, **three npm packages**, **one private web app**:
+
 ```
-src/
-├── types.ts              # All type definitions
-├── config.ts             # Configuration with sensible defaults
-├── math/                 # Pure math (vectors, PCA, k-means)
-├── embeddings/           # TF-IDF (local) + API embeddings
-├── core/
-│   ├── Collector.ts      # Root pair collection
-│   ├── VectorSpace.ts    # PCA, root directions, Weyl chambers
-│   ├── Graph.ts          # Interaction knowledge graph
-│   ├── AgentGraph.ts     # Agent topology graph
-│   ├── ContextFilter.ts  # Chamber + Graph + Reflection retrieval
-│   └── Router.ts         # Model tier routing
-├── celo/                 # On-chain telemetry + ERC-8004
-├── rootRouter.ts         # Main orchestrator
-└── index.ts              # Public API
-app/                      # Next.js dashboard
-demo/
-├── basic.ts              # 40 interactions, single agent
-├── swarm.ts              # Multi-agent topology routing
-└── benchmark.ts          # Baseline vs RootRouter comparison
-contracts/
-└── RootRouterTelemetry.sol
-docs/
-├── E8_Systems_Framework_Paper (version 2).pdf
-└── E8_AI_Architecture_Paper.pdf
+RootRouter/
+├── packages/
+│   ├── sdk/                 # npm: rootrouter (CLI + library)
+│   │   ├── src/             # Public API, context engine, Celo, CLI
+│   │   ├── demo/            # basic, swarm, benchmark
+│   │   └── dist/            # Built on publish (not committed)
+│   ├── proxy/               # npm: @rootrouter/proxy
+│   └── mcp/                 # npm: @rootrouter/mcp
+├── apps/
+│   └── dashboard/           # Next.js app — NOT on npm (private workspace)
+│       ├── app/             # Routes: /, /dashboard, /dashboard/topology
+│       ├── public/SKILL.md  # Agent playbook → /SKILL.md on Vercel
+│       ├── convex/          # Topology snapshot backend
+│       └── vercel.json      # Monorepo install/build commands
+├── contracts/
+│   └── RootRouterTelemetry.sol
+├── docs/                    # Architecture, providers, insights, templates
+└── scripts/                 # legal sync, publish helpers
 ```
 
-Run `npm run build` to produce `dist/` for the library.
+### What ships where
+
+| Artifact | In git? | On npm? | Hosted where? |
+|----------|---------|---------|---------------|
+| `packages/sdk` (`rootrouter`) | Yes | Yes (`npm publish`) | — |
+| `packages/proxy` | Yes | Yes | Self-host / Docker |
+| `packages/mcp` | Yes | Yes | Cursor / Codex via npx |
+| `apps/dashboard` | Yes | **No** (`"private": true`) | [Vercel](https://root-router.vercel.app) |
+
+The SDK **does not bundle** the dashboard. Its `package.json` `files` field only includes `dist`, `templates`, and legal docs. Demos and `rootrouter snapshot` optionally **POST to** a running dashboard via `DASHBOARD_URL` — that is an HTTP integration, not a package dependency.
+
+**Build commands (from repo root):**
+
+```bash
+npm run build              # SDK only → packages/sdk/dist/
+npm run build:all          # SDK + proxy + MCP
+npm run dashboard:build    # Next.js → apps/dashboard/.next/
+npm run publish:packages   # SDK + proxy + MCP only (never dashboard)
+```
+
+**Vercel:** set project **Root Directory** to `apps/dashboard`. See [`apps/dashboard/README.md`](./apps/dashboard/README.md).
+
+**Split repo?** Not required. Keeping the dashboard here shares docs, `SKILL.md`, and release context with the SDK. Split only if you need a separate team, access control, or deploy cadence — the npm boundary already prevents accidental publishing.
 
 ---
 

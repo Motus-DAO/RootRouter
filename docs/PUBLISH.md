@@ -76,9 +76,15 @@ Optional proxy env snippet is printed after `init cursor`.
 
 ## Dashboard (Vercel — not an npm package)
 
-The dashboard lives in `apps/dashboard` (`@rootrouter/dashboard`, **private**). It is **not** published with `rootrouter`, `@rootrouter/proxy`, or `@rootrouter/mcp`.
+The dashboard lives in `apps/dashboard` (`@rootrouter/dashboard`, **`"private": true`**). It is **not** published with `rootrouter`, `@rootrouter/proxy`, or `@rootrouter/mcp`.
 
-Vercel **Root Directory:** `apps/dashboard`. See [`apps/dashboard/README.md`](../apps/dashboard/README.md).
+| Concern | How it is enforced |
+|---------|-------------------|
+| Accidental npm publish | `"private": true` on dashboard; `publish:packages` script has no dashboard step |
+| SDK tarball contents | `rootrouter` `files`: `["dist", "templates", …]` only — no `apps/` |
+| Vercel deploy path | Root Directory = `apps/dashboard` — see [`apps/dashboard/README.md`](../apps/dashboard/README.md) |
+
+**Keep in this repo or split?** Default: **keep here** (shared docs, `SKILL.md`, one PR for product changes). Split to a second repo only if you need separate access, billing, or release cadence — the npm/git boundaries already isolate shipping channels.
 
 ## Dashboard selection stats
 
