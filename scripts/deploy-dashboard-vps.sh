@@ -17,7 +17,8 @@ set -euo pipefail
 
 ROOTROUTER_VPS="${ROOTROUTER_VPS:-gerry@109.199.99.188}"
 ROOTROUTER_PUBLIC_URL="${ROOTROUTER_PUBLIC_URL:-https://rootrouter.motusdao.org}"
-REPO_DIR="${REPO_DIR:-$HOME/RootRouter}"
+REMOTE_REPO_DIR="${REMOTE_REPO_DIR:-/home/gerry/RootRouter}"
+LOCAL_REPO_DIR="${LOCAL_REPO_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 LOCAL=false
 
 for arg in "$@"; do
@@ -33,7 +34,7 @@ remote_build() {
   local host="$1"
   ssh "$host" bash -s <<REMOTE
 set -euo pipefail
-cd "$REPO_DIR"
+cd "$REMOTE_REPO_DIR"
 export NEXT_PUBLIC_CONVEX_URL="${NEXT_PUBLIC_CONVEX_URL:-}"
 export ROOTROUTER_DOCKER_NETWORK="${ROOTROUTER_DOCKER_NETWORK:-openclaw_default}"
 
@@ -53,7 +54,7 @@ REMOTE
 }
 
 local_build() {
-  cd "$REPO_DIR"
+  cd "$LOCAL_REPO_DIR"
   export NEXT_PUBLIC_CONVEX_URL="${NEXT_PUBLIC_CONVEX_URL:-}"
   export ROOTROUTER_DOCKER_NETWORK="${ROOTROUTER_DOCKER_NETWORK:-openclaw_default}"
 
@@ -67,7 +68,7 @@ local_build() {
 
 install_caddy_hint() {
   log "Caddy: copy deploy/caddy/rootrouter.caddy to your Caddy sites dir, then reload."
-  log "  sudo cp $REPO_DIR/deploy/caddy/rootrouter.caddy /etc/caddy/sites/"
+  log "  sudo cp $REMOTE_REPO_DIR/deploy/caddy/rootrouter.caddy /etc/caddy/sites/"
   log "  sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy"
 }
 
@@ -82,7 +83,7 @@ if $LOCAL; then
   log "Building dashboard on this machine..."
   local_build
 else
-  log "Rsync monorepo to $ROOTROUTER_VPS:$REPO_DIR ..."
+  log "Rsync monorepo to $ROOTROUTER_VPS:$REMOTE_REPO_DIR ..."
   rsync -az --delete \
     --exclude node_modules \
     --exclude .next \
@@ -90,7 +91,7 @@ else
     --exclude packages/sdk/dist \
     --exclude packages/sdk/logs \
     --exclude .rootrouter \
-    ./ "${ROOTROUTER_VPS}:${REPO_DIR}/"
+    "$LOCAL_REPO_DIR/" "${ROOTROUTER_VPS}:${REMOTE_REPO_DIR}/"
 
   log "Remote Docker build + start..."
   remote_build "$ROOTROUTER_VPS"
