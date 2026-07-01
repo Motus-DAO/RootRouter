@@ -42,17 +42,20 @@ Without this, Vercel builds from the repo root, runs the wrong command, and fail
 
 ### 2. Build settings (usually auto from `vercel.json`)
 
-This folder’s [`vercel.json`](./vercel.json) tells Vercel to install and build from the monorepo root (workspace hoisting + `next.config.mjs` `turbopack.root`):
+This folder’s [`vercel.json`](./vercel.json) tells Vercel to install from the monorepo root and run `next build` inside this app:
 
 | Setting | Value |
 |---------|--------|
 | Framework Preset | Next.js |
 | Root Directory | `apps/dashboard` |
 | Install Command | `cd ../.. && npm install` |
-| Build Command | `cd ../.. && npm run dashboard:build` |
-| Output Directory | *(leave default — `.next` inside this app)* |
+| Build Command | `npm run build` |
+| Output Directory | *(leave default — do not override)* |
+| Include files outside root | **Enabled** |
 
-Do **not** set Output Directory to a path at the repo root.
+**Important:** In Vercel → Settings → Build & Development, turn **off** any Build Command override that says `npm run dashboard:build`. That script only exists at the monorepo root; from `apps/dashboard` it fails and `.next` is never created.
+
+Deploy branch must include `apps/dashboard/vercel.json` and `public/SKILL.md` (use `main` after merge, or set Production Branch to `release/0.2.0-beta.0`).
 
 ### 3. Environment variables
 
