@@ -50,7 +50,7 @@ const stats = [
 ];
 
 const resources = [
-  { title: 'FENG-SHUI.md', desc: 'Layer 0 — workspace placement before first write', href: '/FENG-SHUI.md' },
+  { title: 'Feng Shui', desc: 'Layer 0 — workspace placement before first write', href: '/FENG-SHUI.md' },
   { title: 'SKILL.md', desc: 'Layer 1 — context routing and MCP discipline', href: '/SKILL.md' },
   { title: 'Dashboard', desc: 'View telemetry and topology', href: '/dashboard' },
   { title: 'Topology', desc: 'Agent, interaction, and RepoGraph views', href: '/dashboard/topology' },
@@ -60,7 +60,7 @@ const resources = [
 
 const footerLinks = [
   { href: '/', label: 'Home' },
-  { href: '/FENG-SHUI.md', label: 'FENG-SHUI.md' },
+  { href: '/FENG-SHUI.md', label: 'Feng Shui' },
   { href: '/SKILL.md', label: 'SKILL.md' },
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/dashboard/topology', label: 'Topology' },
@@ -99,15 +99,26 @@ export default function HomePage() {
             >
               Reduce agent LLM context cost with root-pair telemetry, interaction graphs, and symmetry-aware filtering. Demo benchmarks vary by workload. Verifiable on Celo. Early beta.
             </p>
-            <Link href="/dashboard" className="landing-cta-primary">
-              Open Dashboard
-            </Link>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+              <Link href="/dashboard" className="landing-cta-primary">
+                Open Dashboard
+              </Link>
+              <Link href="/FENG-SHUI.md" className="landing-cta-secondary">
+                Feng Shui skill
+              </Link>
+              <Link href="/SKILL.md" className="landing-cta-secondary">
+                RootRouter SKILL
+              </Link>
+            </div>
           </div>
           <div className="landing-hero-visual">
             <HeroSnapshotGraphs />
           </div>
         </div>
       </section>
+
+      {/* Agent onboarding: Layer 0 + Layer 1 playbooks — above the fold */}
+      <AgentOnboardingSection />
 
       {/* Feature 1: panel, two-col — image left, text right */}
       <section className="landing-section landing-section-panel">
@@ -288,9 +299,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* Agent onboarding: Layer 0 + Layer 1 playbooks */}
-      <AgentOnboardingSection />
 
       {/* How do I get started? – visible on scroll */}
       <GetStartedSection />
