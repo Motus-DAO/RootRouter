@@ -30,6 +30,24 @@ done
 log() { printf '==> %s\n' "$*"; }
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
+# Load NEXT_PUBLIC_CONVEX_URL from repo .env.local (not committed).
+load_convex_env() {
+  local f
+  for f in "$LOCAL_REPO_DIR/.env.local" "$LOCAL_REPO_DIR/apps/dashboard/.env.local"; do
+    if [[ -f "$f" ]]; then
+      # shellcheck disable=SC1090
+      set -a && source "$f" && set +a
+      log "Loaded Convex env from $f"
+      break
+    fi
+  done
+  if [[ -n "${NEXT_PUBLIC_CONVEX_URL:-}" ]]; then
+    log "NEXT_PUBLIC_CONVEX_URL=$NEXT_PUBLIC_CONVEX_URL"
+  else
+    log "Warning: NEXT_PUBLIC_CONVEX_URL unset — topology/Convex snapshots disabled in dashboard"
+  fi
+}
+
 remote_build() {
   local host="$1"
   ssh "$host" bash -s <<REMOTE
@@ -81,8 +99,10 @@ verify() {
 
 if $LOCAL; then
   log "Building dashboard on this machine..."
+  load_convex_env
   local_build
 else
+  load_convex_env
   log "Rsync monorepo to $ROOTROUTER_VPS:$REMOTE_REPO_DIR ..."
   rsync -az --delete \
     --exclude node_modules \
