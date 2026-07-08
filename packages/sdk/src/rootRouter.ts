@@ -320,17 +320,31 @@ export class RootRouter {
 
     // Real API call
     const start = Date.now();
+    const isNvidia = this.config.llmBaseUrl.includes('nvidia.com');
+    const maxOut = parseInt(process.env.LLM_MAX_OUTPUT_TOKENS ?? '512', 10);
+    const body: Record<string, unknown> = {
+      model: params.model,
+      messages: params.messages,
+      max_tokens: maxOut,
+      temperature: 0.7,
+    };
+    if (isNvidia) {
+      // Thinking models: disable for shorter benchmark runs unless explicitly enabled
+      const thinkingOn = process.env.NVIDIA_ENABLE_THINKING === 'true';
+      if (!thinkingOn) {
+        body.chat_template_kwargs = { enable_thinking: false };
+      }
+    } else {
+      body.max_completion_tokens = maxOut;
+    }
+
     const response = await fetch(`${this.config.llmBaseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${this.config.llmApiKey}`,
       },
-      body: JSON.stringify({
-        model: params.model,
-        messages: params.messages,
-        max_completion_tokens: 2048,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -338,11 +352,23 @@ export class RootRouter {
       throw new Error(`LLM API error (${response.status}): ${text}`);
     }
 
-    const data = await response.json() as any;
+    const data = await response.json() as {
+      choices?: Array<{ message?: { content?: string | null; reasoning_content?: string } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
+    };
     const latencyMs = Date.now() - start;
+    const message = data.choices?.[0]?.message;
+    const text =
+      message?.content?.trim() ||
+      (typeof message?.reasoning_content === 'string' ? message.reasoning_content.trim() : '') ||
+      '';
+
+    if (!text) {
+      throw new Error('LLM API returned empty content');
+    }
 
     return {
-      response: data.choices[0].message.content,
+      response: text,
       inputTokens: data.usage?.prompt_tokens ?? 0,
       outputTokens: data.usage?.completion_tokens ?? 0,
       latencyMs,

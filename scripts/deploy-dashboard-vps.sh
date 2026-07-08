@@ -93,6 +93,7 @@ install_caddy_hint() {
 verify() {
   local url="$ROOTROUTER_PUBLIC_URL"
   log "Verify (after DNS + Caddy):"
+  printf '  curl -sI %s/FENG-SHUI.md\n' "$url"
   printf '  curl -sI %s/SKILL.md\n' "$url"
   printf '  curl -sI %s/\n' "$url"
 }

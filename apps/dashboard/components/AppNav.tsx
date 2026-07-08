@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 
 const navItems = [
   { href: '/', label: 'Home' },
+  { href: '/FENG-SHUI.md', label: 'Feng Shui' },
+  { href: '/SKILL.md', label: 'SKILL.md' },
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/dashboard/topology', label: 'Topology' },
 ];
@@ -38,7 +40,10 @@ export default function AppNav() {
             🌿 RootRouter
           </Link>
           {navItems.map(({ href, label }) => {
-          const isActive = pathname === href || (href !== '/' && pathname.startsWith(href));
+          const isActive =
+            pathname === href ||
+            (href !== '/' && href.endsWith('.md') && pathname === href) ||
+            (href !== '/' && !href.endsWith('.md') && pathname.startsWith(href));
           return (
             <Link
               key={href}

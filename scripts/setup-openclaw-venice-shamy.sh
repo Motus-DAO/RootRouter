@@ -180,23 +180,104 @@ log "  avril (main): venice/$VENICE_MODEL — direct, standby"
 log "  shamy:        rootrouter/$VENICE_MODEL — via :${PROXY_PORT}"
 log "Verify: curl -s http://127.0.0.1:${PROXY_PORT}/healthz"
 
-# --- Layer 1 playbook in Shamy workspace ---
+# --- Layer 0 + Layer 1 onboarding in Shamy workspace ---
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SHAMY_WORKSPACE="${SHAMY_WORKSPACE:-$HOME/data/shamy/workspace}"
-SHAMY_AGENTS="$SHAMY_WORKSPACE/AGENTS.md"
-PLAYBOOK_URL="${ROOTROUTER_PUBLIC_URL:-https://rootrouter.motusdao.org}/SKILL.md"
-if [[ -f "$SHAMY_AGENTS" ]] && ! grep -q "$PLAYBOOK_URL" "$SHAMY_AGENTS" 2>/dev/null; then
-  cat > /tmp/rootrouter-playbook-snippet.md << EOF
+FENG_SHUI_SRC="$REPO_ROOT/docs/skills/feng-shui"
+ORGANIZE_SRC="$REPO_ROOT/docs/skills/organize-space"
+PUBLIC_URL="${ROOTROUTER_PUBLIC_URL:-https://rootrouter.motusdao.org}"
+PLAYBOOK_URL="$PUBLIC_URL/SKILL.md"
+FENG_SHUI_URL="$PUBLIC_URL/FENG-SHUI.md"
 
-## RootRouter
+install_shamy_workspace_tools() {
+  local tools_dir="$SHAMY_WORKSPACE/tools/feng-shui"
+  mkdir -p "$SHAMY_WORKSPACE" "$tools_dir"
+  if [[ -f "$FENG_SHUI_SRC/scripts/workspace_guard.py" ]]; then
+    cp "$FENG_SHUI_SRC/scripts/workspace_guard.py" "$tools_dir/workspace_guard.py"
+    chmod +x "$tools_dir/workspace_guard.py"
+    log "Installed workspace_guard.py → $tools_dir/"
+  else
+    log "Warning: $FENG_SHUI_SRC/scripts/workspace_guard.py not found — skip copy"
+  fi
+  if [[ -f "$ORGANIZE_SRC/scripts/inventory.py" ]]; then
+    cp "$ORGANIZE_SRC/scripts/inventory.py" "$tools_dir/inventory.py"
+    chmod +x "$tools_dir/inventory.py"
+    log "Installed inventory.py → $tools_dir/"
+  fi
+}
+
+merge_shamy_agents_md() {
+  local agents_file="$SHAMY_WORKSPACE/AGENTS.md"
+  local tmp_snippet="/tmp/shamy-onboarding-snippet.md"
+  cat >"$tmp_snippet" <<EOF
+
+## Workspace (Layer 0)
+
+Before creating or moving files, read
+$FENG_SHUI_URL
+and follow it. Run \`python3 tools/feng-shui/workspace_guard.py --path "\$PWD" --intent write\` before the first write of each task (when cwd changes). Never create projects at the home root, Desktop, or Downloads.
+
+## RootRouter (Layer 1)
 
 Before discussing RootRouter, agent context routing, token strategy, or Motus agent infrastructure, read
 $PLAYBOOK_URL
 and follow it.
 
-RootRouter is **not** a network router. If this agent uses \`rootrouter/*\` models, the proxy trims chat history only — fetch the playbook for repo work and correct mental models.
+RootRouter is **not** a network router. This agent uses \`rootrouter/*\` models — the proxy trims chat history only. Fetch the playbook for repo work and correct mental models.
 EOF
-  cp "$SHAMY_AGENTS" "$SHAMY_AGENTS.bak-playbook"
-  cat /tmp/rootrouter-playbook-snippet.md "$SHAMY_AGENTS" > /tmp/AGENTS.merged && mv /tmp/AGENTS.merged "$SHAMY_AGENTS"
-  log "Prepended RootRouter playbook to $SHAMY_AGENTS"
-fi
-log "Playbook URL: $PLAYBOOK_URL (live after dashboard deploy)"
+
+  if [[ ! -f "$agents_file" ]]; then
+    {
+      cat "$tmp_snippet"
+      printf '\n'
+    } >"$agents_file"
+    log "Created $agents_file with Layer 0 + Layer 1 onboarding"
+    return
+  fi
+
+  local changed=0
+  if ! grep -q "$FENG_SHUI_URL" "$agents_file" 2>/dev/null; then
+    cp "$agents_file" "$agents_file.bak-feng-shui"
+    cat "$tmp_snippet" "$agents_file" > /tmp/AGENTS.merged && mv /tmp/AGENTS.merged "$agents_file"
+    log "Prepended Feng Shui (Layer 0) to $agents_file"
+    changed=1
+  fi
+  if ! grep -q "$PLAYBOOK_URL" "$agents_file" 2>/dev/null; then
+    [[ "$changed" -eq 0 ]] && cp "$agents_file" "$agents_file.bak-playbook"
+    cat > /tmp/rootrouter-playbook-snippet.md << EOF
+
+## RootRouter (Layer 1)
+
+Before discussing RootRouter, agent context routing, token strategy, or Motus agent infrastructure, read
+$PLAYBOOK_URL
+and follow it.
+
+RootRouter is **not** a network router. This agent uses \`rootrouter/*\` models — the proxy trims chat history only. Fetch the playbook for repo work and correct mental models.
+EOF
+    cat /tmp/rootrouter-playbook-snippet.md "$agents_file" > /tmp/AGENTS.merged && mv /tmp/AGENTS.merged "$agents_file"
+    log "Prepended RootRouter (Layer 1) to $agents_file"
+  fi
+}
+
+merge_shamy_bootstrap_md() {
+  local bootstrap_file="$SHAMY_WORKSPACE/BOOTSTRAP.md"
+  if [[ -f "$bootstrap_file" ]] && grep -q "$FENG_SHUI_URL" "$bootstrap_file" 2>/dev/null; then
+    return
+  fi
+  if [[ -f "$FENG_SHUI_SRC/assets/openclaw/BOOTSTRAP.fragment.md" ]]; then
+    if [[ -f "$bootstrap_file" ]]; then
+      cp "$bootstrap_file" "$bootstrap_file.bak-feng-shui"
+      cat "$FENG_SHUI_SRC/assets/openclaw/BOOTSTRAP.fragment.md" "$bootstrap_file" > /tmp/BOOTSTRAP.merged
+      mv /tmp/BOOTSTRAP.merged "$bootstrap_file"
+    else
+      cp "$FENG_SHUI_SRC/assets/openclaw/BOOTSTRAP.fragment.md" "$bootstrap_file"
+    fi
+    log "Merged Feng Shui bootstrap into $bootstrap_file"
+  fi
+}
+
+install_shamy_workspace_tools
+merge_shamy_agents_md
+merge_shamy_bootstrap_md
+log "Onboarding URLs: $FENG_SHUI_URL (Layer 0) · $PLAYBOOK_URL (Layer 1)"
