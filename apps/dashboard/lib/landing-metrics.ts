@@ -1,6 +1,6 @@
 /**
  * Landing page evidence — synced from benchmarks/results/nim-latest.json after live runs.
- * Run: npm run demo:benchmark-live -- --queries 12
+ * Run: npm run demo:benchmark-live -- --profile session
  */
 
 export type EvidenceMethod = 'audited' | 'production' | 'simulated' | 'live-api';
@@ -28,13 +28,13 @@ export const evidenceMetrics: EvidenceMetric[] = [
   {
     id: 'nim-live-api',
     path: 'NVIDIA NIM · live API',
-    value: '1.6%',
-    label: 'chat context saved (12-turn)',
+    value: '46%',
+    label: 'chat context saved (swarm)',
     detail:
-      'Real completions — nvidia/nemotron-3-ultra-550b-a55b, 12 multi-turn queries, integrate.api.nvidia.com (2026-07-01)',
+      'Real completions — swarm profile: 24 steps, 3 agents, nvidia/nemotron-3-ultra-550b-a55b (2026-07-01)',
     method: 'live-api',
     footnote:
-      'Measures chat-history filtering, not repo MCP. Savings grow as sessions lengthen. Reproduce: npm run demo:benchmark-live',
+      'Estimated filter savings over accumulated history. Aligns with ~49% offline SDK benchmark. Reproduce: npm run demo:benchmark-live:swarm',
   },
   {
     id: 'openclaw-proxy',
@@ -60,7 +60,7 @@ export const realApiBenchmark = {
   status: 'complete' as 'pending' | 'in_progress' | 'complete',
   headline: 'Live API benchmark published',
   description:
-    '12-query session on Nemotron 3 Ultra via NVIDIA NIM — 1.6% estimated context reduction on multi-turn chat. Repo MCP cold slice (~95%) remains the strongest audited path.',
+    'Swarm profile on Nemotron 3 Ultra — 46% context reduction across 24 multi-agent steps (~9 min). Offline SDK benchmark ~49% on same corpus. Repo MCP cold slice (~95%) remains the strongest audited path.',
   resultUrl: 'https://github.com/RootRouter/RootRouter/blob/main/benchmarks/results/nim-latest.json',
 };
 
