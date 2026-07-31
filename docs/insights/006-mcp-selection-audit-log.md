@@ -35,13 +35,15 @@ Every successful `select_context` (≥1 item selected) appends one JSON line and
   "tokenBudget": 4000,
   "tokensIn": 134000,
   "tokensOut": 5998,
-  "tokensSaved": 128134,
-  "percentSaved": 95.5,
+  "tokensSaved": 128002,
+  "percentSaved": 95.52,
   "selectedCount": 24,
   "selectedIds": ["…"],
   "topRelevance": 0.439
 }
 ```
+
+This example reports 95.5% context reduction, rounded to **~96%** in summary material. Its baseline is the full indexed repository corpus for a cold slice; it is not an every-request Cursor savings rate.
 
 ## How to review usage
 

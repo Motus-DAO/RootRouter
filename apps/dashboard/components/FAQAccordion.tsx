@@ -11,7 +11,7 @@ const faqData: FAQItem[] = [
   {
     question: 'What savings should I expect?',
     answer:
-      'It depends on the path. Cursor MCP on cold slice kickoffs: ~94–95% context tokens saved vs stuffing the full repo (audited in selections.jsonl). NVIDIA NIM live API (12-turn chat, Nemotron 3 Ultra): ~1.6% context saved — chat filtering grows with session length. OpenClaw proxy trims growing chat history every completion. SDK demo:benchmark is ~49% on a simulated 50-query run — offline only.',
+      'It depends on the path. Cursor MCP cold-slice selection saved 95.5% (~96%) against its full indexed-corpus baseline. A 24-step, three-agent NVIDIA NIM swarm saved an estimated 46% of accumulated chat context using real Nemotron 3 Ultra completions. OpenClaw proxy trims growing chat history every completion. The offline SDK benchmark models ~49% savings on a seeded 50-query run.',
   },
   {
     question: 'When do I use MCP vs the proxy?',

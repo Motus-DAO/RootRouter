@@ -8,7 +8,7 @@
 
 ## Summary
 
-A capable Cursor agent used RootRouter MCP (`index_repo`, `select_context`, `stats`) under real slice-handoff constraints. Verdict: **useful for cold starts and spec-driven slices; skip for warm, localized follow-ups.** Core value prop validated (~94% token savings on slice queries). Main quality gap: **noise in selected chunks**. Main adoption lever: **workflow rules**, not always-on tool discovery.
+A capable Cursor agent used RootRouter MCP (`index_repo`, `select_context`, `stats`) under real slice-handoff constraints. Verdict: **useful for cold starts and spec-driven slices; skip for warm, localized follow-ups.** Early slice queries saved ~94%; a later persisted audit example recorded 95.5%, rounded to **~96%**, against the full indexed-corpus baseline. Main quality gap: **noise in selected chunks**. Main adoption lever: **workflow rules**, not always-on tool discovery.
 
 ---
 
@@ -42,7 +42,7 @@ This matches how the agent actually worked in the session — not a failure of a
 |--------|----------|
 | **`index_repo`** | Straightforward — one call, store is warm |
 | **`select_context`** | Tight query + token budget replaced "read half the repo" with relevant chunks |
-| **Token savings** | ~61k–63k tokens saved (~94%) vs stuffing whole baseline for slice 4/5 queries |
+| **Token savings** | ~61k–63k saved (~94%) on the original slice 4/5 observations; later persisted audit example: ~134k → ~6k (95.5%, rounded to ~96%) |
 | **Spec-first fit** | Query anchored to acceptance criteria, not random exploration |
 | **Small MCP surface** | Three tools felt approachable — not chatty or magical |
 | **Positioning** | Works as a **"don't @ the whole repo" guardrail**, not a full autopilot brain |
@@ -65,7 +65,7 @@ This matches how the agent actually worked in the session — not a failure of a
 
 ### Validates product direction
 
-1. **Core value prop is real** — 94% savings on cross-repo slice queries is the promise working, not vanity metrics.
+1. **Core value prop is real** — ~94% on the original cross-repo slice queries and 95.5% in the later audit example validate aggressive cold-slice selection.
 2. **Small MCP surface is a feature** — agents want a sharp knife, not ceremony.
 3. **Spec-first workflows are the killer integration** — best usage when handoff *requires* the flow and anchors query to acceptance criteria.
 4. **Skipping on follow-ups is rational** — once oriented, re-selection adds latency without benefit.

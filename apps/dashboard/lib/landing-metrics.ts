@@ -1,6 +1,6 @@
 /**
  * Landing page evidence — synced from benchmarks/results/nim-latest.json after live runs.
- * Run: npm run demo:benchmark-live -- --profile session
+ * Current headline artifact: npm run demo:benchmark-live:swarm
  */
 
 export type EvidenceMethod = 'audited' | 'production' | 'simulated' | 'live-api';
@@ -19,11 +19,11 @@ export const evidenceMetrics: EvidenceMetric[] = [
   {
     id: 'mcp-cold-slice',
     path: 'Cursor MCP · cold slice',
-    value: '~95%',
+    value: '~96%',
     label: 'context tokens saved',
-    detail: 'Audited slice kickoffs vs full-repo baseline (index_repo + select_context)',
+    detail: 'Audited cold-slice selection: about 134k indexed-corpus tokens → about 6k selected',
     method: 'audited',
-    footnote: 'Warm follow-ups should skip MCP. See insight 001 & selections.jsonl audit.',
+    footnote: '95.5%, rounded. Best for cold, spec-driven slices; not an every-request result.',
   },
   {
     id: 'nim-live-api',
@@ -60,7 +60,7 @@ export const realApiBenchmark = {
   status: 'complete' as 'pending' | 'in_progress' | 'complete',
   headline: 'Live API benchmark published',
   description:
-    'Swarm profile on Nemotron 3 Ultra — 46% context reduction across 24 multi-agent steps (~9 min). Offline SDK benchmark ~49% on same corpus. Repo MCP cold slice (~95%) remains the strongest audited path.',
+    'Swarm profile on Nemotron 3 Ultra — 134,226 accumulated-history tokens → 72,450 selected, a 46% estimated reduction across 24 multi-agent steps. Cursor MCP cold-slice selection saved ~96% against its indexed-corpus baseline.',
   resultUrl: 'https://github.com/RootRouter/RootRouter/blob/main/benchmarks/results/nim-latest.json',
 };
 

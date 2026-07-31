@@ -114,7 +114,7 @@ const descByTab: Record<TabId, string> = {
   openclaw:
     'Passive savings: point OpenClaw at the proxy. Active repo work: add @rootrouter/mcp. Run setup-openclaw-venice-shamy.sh for newborn Shamy onboarding.',
   cursor:
-    'MCP on cold slices only — shaped select_context queries, not “read everything”. ~95% context savings vs full-repo baseline on audited slice kickoffs.',
+    'MCP on cold slices only — shaped select_context queries, not “read everything”. ~96% context savings against the full indexed-corpus baseline in the persisted audit example.',
   sdk:
     'Programmatic RootRouter.chat() or offline demos. Live API: npm run demo:benchmark-live (NVIDIA NIM). Offline: demo:benchmark uses simulated LLM.',
 };

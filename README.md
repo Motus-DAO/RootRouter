@@ -41,7 +41,7 @@ RootRouter is middleware that fuses **three mathematical layers** — algebraic 
 
 ### 1. 📡 Root-Pair Telemetry
 
-Every interaction produces a **root pair**: the gap between what was intended (query embedding) and what was executed (response embedding). The root vector `r = intent − execution` measures alignment. Collect enough root pairs and **geometric structure emerges** — the interaction space has preferred directions, natural regions, and algebraic symmetry.
+Every interaction produces a **root pair**: the gap between what was intended (query embedding) and what was executed (response embedding). The root vector `r = intent − execution` is RootRouter's operational proxy for semantic alignment. It is a geometric signal, not an independent correctness grade. Collect enough root pairs and the implementation uses their principal directions to organize interaction history.
 
 ### 2. 🔬 Multi-Layer Context Filtering
 
@@ -62,26 +62,25 @@ This replaces "send everything" with "send exactly what's relevant" — from thr
 
 Each chamber has a historical difficulty score (average root norm). Easy chambers → fast, cheap models. Hard chambers → powerful, expensive models.
 
-For **multi-agent swarms**, RootRouter builds an **Agent Topology Graph**: a directed graph where nodes are agents and weighted edges encode delegation relationships and chamber specializations. Each agent accumulates a *chamber profile* over time. When a new task arrives, RootRouter performs **weighted shortest-path routing** on the topology graph to find the specialist agent whose chamber profile best matches the task's geometric signature. The topology is self-organizing — it improves as the swarm grows.
+For **multi-agent swarms**, RootRouter builds an **Agent Topology Graph**: a directed graph where nodes are agents and weighted edges encode delegation relationships and chamber specializations. Each agent accumulates a *chamber profile* over time. The current router can recommend the agent with the best historical root norm for a query's chamber, while the graph retains delegation and specialization data for richer swarm routing.
 
-All telemetry is logged on **Celo** for verifiable, auditable agent infrastructure.
+Telemetry is written locally by default. When Celo credentials and the telemetry contract are configured, RootRouter can batch-log compressed interaction telemetry on-chain.
 
 ---
 
 ## Results
 
-```
- Metric              Baseline         RootRouter       Savings
- ─────────────────────────────────────────────────────────────
- Total Cost           ~$1.00           ~$0.51           ~49%
- Context Tokens       27,245           filtered         36,317 saved
- Quality (norm)       1.3043           1.3043           ~same
- Active Chambers      —                ~19              auto-discovered
- Root Directions      —                5                ~50% variance
- Graph Edges          —                ~81              ~4.0 avg degree
-```
+RootRouter has two complementary context-saving paths. They use different baselines and should be reported separately.
 
-*Run `npm run demo:benchmark` (or `npx tsx demo/benchmark.ts --seed 42` for reproducible numbers). Metrics use aligned token definitions; results export to `benchmarks/results/{timestamp}.json`. Quality measured by root norm — lower is better, same means no quality loss.*
+| Path | Result | Evidence |
+|---|---:|---|
+| **NVIDIA NIM live swarm** | **46% chat context saved** | 134,226 accumulated-history tokens → 72,450 selected across 24 steps and 3 agents using real `nvidia/nemotron-3-ultra-550b-a55b` completions |
+| **Cursor MCP cold slice** | **~96% repository context saved** | Audited `index_repo` + `select_context` call: about 134k indexed-corpus tokens → about 6k selected for a spec-driven slice |
+| **Offline SDK benchmark** | **~49% simulated cost savings** | Seeded 50-query TF-IDF + simulated-LLM benchmark |
+
+The **46%** result measures automatic filtering as a multi-agent history grows. The **~96%** result measures explicit repository selection against the full indexed corpus at cold-slice kickoff. Neither percentage is a universal per-request guarantee, and token reduction alone is not an answer-quality metric.
+
+See [Benchmark evidence and methodology](docs/BENCHMARKS.md), the committed [NVIDIA NIM swarm result](benchmarks/results/nim-live-swarm-2026-07-01T22-10-18.json), and the [Cursor workflow review](docs/insights/001-cursor-agent-slice-workflow-feedback.md).
 
 ---
 
@@ -135,7 +134,7 @@ npx tsx demo/swarm.ts        # multi-agent topology routing
 npx tsx demo/benchmark.ts    # baseline vs RootRouter comparison
 ```
 
-### Benchmark (fair comparison, reproducible)
+### Benchmarks
 
 The benchmark uses **aligned token accounting** (same context definition for baseline and RootRouter) and **explicit metrics**: `raw_input_tokens`, `filtered_context_tokens`, `effective_billed_tokens`. Results are exported to `benchmarks/results/{timestamp}.json`.
 
@@ -144,8 +143,11 @@ The benchmark uses **aligned token accounting** (same context definition for bas
 | **Quick** (15 queries) | `DEMO_QUICK=true npm run demo:benchmark` |
 | **Full** (50 queries) | `npm run demo:benchmark` |
 | **Reproducible** (same seed ⇒ same numbers) | `npx tsx demo/benchmark.ts --seed 42` (from `packages/sdk`) |
+| **NVIDIA NIM live swarm** (24 steps, 3 agents) | `npm run demo:benchmark-live:swarm` |
 
 Regression tests: `npm run test` runs `math.test.ts` and `benchmark.test.ts` (consistency and seed reproducibility).
+
+The live swarm command requires `NVIDIA_NIM_API_KEY` (or `LLM_API_KEY`). It writes a timestamped artifact and updates `benchmarks/results/nim-latest.json`. See [docs/BENCHMARKS.md](docs/BENCHMARKS.md) for baselines and reporting rules.
 
 To see **live telemetry from Celo**, use the [dashboard](#dashboard).
 
