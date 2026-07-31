@@ -19,3 +19,6 @@ packages/sdk/benchmarks/results/
 AGENTS.md
 deploy/dashboard.env
 
+# macOS
+.DS_Store
+**/.DS_Store

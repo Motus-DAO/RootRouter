@@ -14,6 +14,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { RootRouter, estimateTokens, attachSelectionSnapshot } from '../src';
+import { BENCHMARK_QUERIES } from './benchmark-queries';
 
 const c = {
   reset: process.stdout.isTTY !== false ? '\x1b[0m' : '',
@@ -25,59 +26,6 @@ const c = {
   cyan: process.stdout.isTTY !== false ? '\x1b[36m' : '',
   magenta: process.stdout.isTTY !== false ? '\x1b[35m' : '',
 };
-
-const BENCHMARK_QUERIES = [
-  'What is the capital of France?',
-  'Convert 72 degrees Fahrenheit to Celsius',
-  'What does the HTTP status code 404 mean?',
-  'List the primary colors',
-  'What is the boiling point of water in Celsius?',
-  'Define the term API in software development',
-  'What is 15% of 200?',
-  'Name the largest planet in our solar system',
-  'What does HTML stand for?',
-  'How many bytes are in a kilobyte?',
-  'Explain the difference between let and const in JavaScript',
-  'Write a function to reverse a string in Python',
-  'What is a linked list and when would you use one?',
-  'Explain how CSS flexbox alignment works with justify-content',
-  'What is the difference between GET and POST HTTP methods?',
-  'Implement a debounce function in JavaScript with configurable delay',
-  'Explain the CAP theorem and its implications for distributed databases',
-  'Write a SQL query to find the second highest salary in each department',
-  'Describe the observer pattern and provide a TypeScript implementation',
-  'Explain how garbage collection works in V8 JavaScript engine',
-  'Implement a basic promise from scratch in TypeScript',
-  'Design a URL shortener system with high availability requirements',
-  'Write a recursive function to flatten a deeply nested array',
-  'Explain the difference between processes and threads with examples',
-  'Implement a priority queue using a binary heap data structure',
-  'Design a real-time collaborative text editor architecture like Google Docs',
-  'Implement a B-tree with insert and search operations for database indexing',
-  'Explain the Raft consensus algorithm and implement leader election',
-  'Write a compiler frontend: lexer and parser for a simple arithmetic language',
-  'Design a distributed cache system with consistent hashing and replication',
-  'Implement a neural network backpropagation algorithm from scratch in TypeScript',
-  'Design a globally distributed database with strong consistency guarantees',
-  'Implement a concurrent garbage collector with tri-color marking algorithm',
-  'Write a CRDT implementation for collaborative editing with conflict resolution',
-  'Design a low-latency trading system architecture handling 1M orders per second',
-  'Implement a custom memory allocator with buddy system allocation strategy',
-  'Design a privacy-preserving machine learning pipeline using federated learning',
-  'Implement a lock-free concurrent hash map with atomic compare-and-swap',
-  'Write a query optimizer for a simple SQL-like language with join reordering',
-  'Design an end-to-end encrypted messaging system with forward secrecy',
-  'Implement a basic operating system scheduler with multiple scheduling algorithms',
-  'Design a blockchain consensus mechanism optimized for IoT device networks',
-  'Write a JIT compiler for a subset of JavaScript targeting x86 assembly',
-  'Implement a distributed transaction manager with two-phase commit protocol',
-  'Design a self-healing microservices mesh with automatic failover and traffic shaping',
-  'Implement a basic version of the PageRank algorithm for web graph analysis',
-  'Design a real-time recommendation engine using collaborative filtering at scale',
-  'Write a network protocol for reliable ordered message delivery over UDP',
-  'Implement a basic OLAP cube with slice, dice, and rollup operations',
-  'Design an auto-scaling system that predicts load using time-series forecasting',
-];
 
 /** Seeded PRNG (mulberry32) for reproducible runs */
 function mulberry32(seed: number): () => number {

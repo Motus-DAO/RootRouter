@@ -6,8 +6,8 @@ const playbooks = [
   {
     layer: 'Layer 0',
     title: 'Feng Shui',
-    subtitle: 'Workspace placement',
-    desc: 'Where files live. Run the workspace guard before your first write. Harmonize messy Desktop, Downloads, or home-root clutter with approval-first moves.',
+    subtitle: 'Workspace placement policies',
+    desc: 'Where files live. Run the workspace guard before your first write. Harmonize messy Desktop, Downloads, or home-root clutter with approval-first moves. ',
     href: '/FENG-SHUI.md',
     cta: 'Read FENG-SHUI.md',
   },

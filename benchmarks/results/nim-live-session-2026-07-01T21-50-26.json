@@ -1,0 +1,85 @@
+{
+  "provider": "NVIDIA NIM",
+  "model": "nvidia/nemotron-3-ultra-550b-a55b",
+  "base_url": "https://integrate.api.nvidia.com/v1",
+  "profile": "session",
+  "profile_description": "Chained coding slice — 6 turns on one todo API task",
+  "queries_count": 6,
+  "timestamp": "2026-07-01T21:50:26.522Z",
+  "estimated_full_context_tokens": 4913,
+  "estimated_filtered_context_tokens": 4631,
+  "api_prompt_tokens_filtered": 8223,
+  "api_prompt_tokens_baseline_spot": 1629,
+  "estimated_context_savings_pct": 5.739873804192958,
+  "warm_paired_queries": 0,
+  "total_output_tokens": 3072,
+  "total_latency_ms": 149436,
+  "per_query": [
+    {
+      "agent_id": "slice-agent",
+      "category": "kickoff",
+      "query": "Design a REST API for a todo application with auth, tags, and due dates",
+      "original_tokens": 0,
+      "filtered_tokens": 0,
+      "prompt_tokens": 32,
+      "output_tokens": 512,
+      "latency_ms": 52469,
+      "tokens_saved": 0
+    },
+    {
+      "agent_id": "slice-agent",
+      "category": "follow-up",
+      "query": "Implement Express routes and Prisma models for the todo API",
+      "original_tokens": 282,
+      "filtered_tokens": 282,
+      "prompt_tokens": 569,
+      "output_tokens": 512,
+      "latency_ms": 26700,
+      "tokens_saved": 0
+    },
+    {
+      "agent_id": "slice-agent",
+      "category": "follow-up",
+      "query": "Add integration tests for the todo API authentication middleware",
+      "original_tokens": 515,
+      "filtered_tokens": 515,
+      "prompt_tokens": 1103,
+      "output_tokens": 512,
+      "latency_ms": 12313,
+      "tokens_saved": 0
+    },
+    {
+      "agent_id": "slice-agent",
+      "category": "follow-up",
+      "query": "The JWT refresh test fails intermittently — debug the token rotation logic",
+      "original_tokens": 884,
+      "filtered_tokens": 884,
+      "prompt_tokens": 1641,
+      "output_tokens": 512,
+      "latency_ms": 31659,
+      "tokens_saved": 0
+    },
+    {
+      "agent_id": "slice-agent",
+      "category": "follow-up",
+      "query": "Refactor duplicated validation into shared Zod schemas",
+      "original_tokens": 1290,
+      "filtered_tokens": 1008,
+      "prompt_tokens": 1634,
+      "output_tokens": 512,
+      "latency_ms": 9841,
+      "tokens_saved": 282
+    },
+    {
+      "agent_id": "slice-agent",
+      "category": "follow-up",
+      "query": "Document the API with OpenAPI examples for each endpoint",
+      "original_tokens": 1942,
+      "filtered_tokens": 1942,
+      "prompt_tokens": 3244,
+      "output_tokens": 512,
+      "latency_ms": 16454,
+      "tokens_saved": 0
+    }
+  ]
+}
