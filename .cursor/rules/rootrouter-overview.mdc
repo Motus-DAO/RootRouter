@@ -1,0 +1,40 @@
+---
+description: RootRouter product overview from README — architecture, packages, and agent conventions
+alwaysApply: true
+---
+
+# RootRouter overview
+
+Algebraic agent infrastructure (MIT beta): reduces LLM context cost via root-pair telemetry, interaction graphs, and symmetry-aware filtering. Sits between agents and LLM providers.
+
+## What it does
+
+1. **Root pairs** — `r = intent − execution` embeddings; PCA → Weyl chambers for relevance regions
+2. **Multi-layer context filter** — chamber adjacency + interaction knowledge graph + reflection retrieval
+3. **Model / swarm routing** — chamber difficulty → model tier; Agent Topology Graph for delegation
+
+Telemetry is local by default; optional Celo on-chain batch logging (ERC-8004).
+
+## Monorepo map
+
+| Path | Artifact |
+|------|----------|
+| `packages/sdk` | npm `rootrouter` — public API, demos, CLI |
+| `packages/proxy` | npm `@rootrouter/proxy` |
+| `packages/mcp` | npm `@rootrouter/mcp` — Cursor/Codex context tools |
+| `apps/dashboard` | Next.js (private) — topology + Celo views |
+| `contracts/` | `RootRouterTelemetry.sol` |
+
+## Commands (repo root)
+
+- `npm run build` / `build:all` / `mcp:build`
+- Demos: `npm run demo:basic|swarm|benchmark` (offline OK)
+- Dashboard: `npm run dashboard` → localhost:3000
+- Cursor wiring: `npx rootrouter@beta init cursor` (or local `.cursor/mcp.json`)
+
+## Agent conventions
+
+- Prefer RootRouter MCP cold path (`index_repo` → `select_context`) for unfamiliar/cross-module work; skip for warm single-file fixes (see `rootrouter-mcp` rule)
+- **Motus storage:** `init cursor --project-store` → `~/.rootrouter/<slug>/cursor-store.json` on disk; never index into the global demo store
+- Full narrative + math: `README.md`, `docs/architecture.md`, papers under `docs/`
+- Do not treat token savings % as answer-quality guarantees; report MCP cold-slice vs chat-history baselines separately

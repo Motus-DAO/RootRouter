@@ -5,9 +5,18 @@ alwaysApply: true
 
 # RootRouter MCP — agent playbook
 
-This workspace has the **rootrouter** MCP server. Use it to load **budgeted repo context** instead of `@` folders or reading half the codebase.
+Install via `rootrouter init cursor --project-store` (writes this rule + MCP config), or copy to **`.cursor/rules/rootrouter-mcp.mdc`**.
 
 RootRouter **complements** specs and anchor files — it does **not** replace reading them.
+
+## Store isolation (Motus / production)
+
+- **This workspace store:** `{{STORE_PATH}}`
+- **Default agentId:** `{{AGENT_ID}}` (passed as `ROOTROUTER_DEFAULT_AGENT_ID`; use on `index_repo` / `select_*` when omitted)
+- Store data lives on the **machine** under `~/.rootrouter/<slug>/`, not as committed git source
+- **Never** invent a store path. If `.cursor/mcp.json` is missing project store, tell the user to run:  
+  `rootrouter init cursor --project-store --project-agent-id <slug>`
+- Global `~/.rootrouter/store.json` is **demos only** — do not index Motus repos there
 
 ## When to use (cold path)
 
@@ -31,7 +40,7 @@ Re-running selection adds overhead without savings on warm work.
 ## Required workflow (cold slice)
 
 1. **Read the active spec first** (if user or env points to one)
-2. **`index_repo`** — once per repo root per slice kickoff (not every turn)
+2. **`index_repo`** — once per repo root per slice kickoff (not every turn); path = this workspace root
 3. **`select_for_spec`** when `ROOTROUTER_ACTIVE_SPEC` is set — **or** **`select_context`** with a shaped query:
    - slice name + acceptance criteria + module names + anchor file names
    - ✅ `"Academy slice 4: lesson player progress bar, cache invalidation, LessonPlayer.tsx, AC 3.2"`
@@ -39,7 +48,7 @@ Re-running selection adds overhead without savings on warm work.
    - Monorepos: add `pathPrefix` (e.g. `"apps/academy"`) or `excludePaths` to drop sibling apps
 4. **Read anchor files** the spec names (do not skip)
 5. **`Read` / `Grep` only for gaps** selection missed
-6. **`stats`** or **`list_selections`** at slice handoff — use [`docs/templates/slice-handoff.md`](../../docs/templates/slice-handoff.md)
+6. **`stats`** or **`list_selections`** at slice handoff — use `docs/templates/slice-handoff.md`
 
 ## MCP tools
 
@@ -61,6 +70,7 @@ Before calling: read the tool schema from the enabled **rootrouter** MCP server.
 - Re-`index_repo` on every turn
 - Skipping the spec because chunks were returned
 - Using RootRouter for a one-line edit when the file is already in context
+- Indexing multiple repos into one global store
 
 ## Decision (quick)
 

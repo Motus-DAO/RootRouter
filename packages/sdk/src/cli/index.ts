@@ -13,6 +13,7 @@ import { buildSelectionSnapshot } from '../select/snapshot';
 import {
   initCodex,
   initCursor,
+  initHermes,
   proxyEnvSnippet,
   resolveInitPaths,
 } from './init';
@@ -34,6 +35,8 @@ interface ParsedArgs {
   writeAgentsMd?: boolean;
   projectStore?: boolean;
   projectAgentId?: string;
+  projectSlug?: string;
+  dryRun?: boolean;
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
@@ -52,6 +55,8 @@ function parseArgs(argv: string[]): ParsedArgs {
   let writeAgentsMd = false;
   let projectStore = false;
   let projectAgentId: string | undefined;
+  let projectSlug: string | undefined;
+  let dryRun = false;
 
   // `rootrouter ./my-repo` → treat as index
   if (command && !command.startsWith('-') && (command.startsWith('.') || command.startsWith('/'))) {
@@ -88,12 +93,33 @@ function parseArgs(argv: string[]): ParsedArgs {
       projectStore = true;
     } else if (a === '--project-agent-id' && args[i + 1]) {
       projectAgentId = args[++i];
+    } else if (a === '--project-slug' && args[i + 1]) {
+      projectSlug = args[++i];
+    } else if (a === '--dry-run') {
+      dryRun = true;
     } else if (!a.startsWith('-') && command === 'index') {
       repoPath = a;
     }
   }
 
-  return { command, subcommand, repoPath, storePath, agentId, dashboardUrl, auditLimit, json, localEmbeddings, activeSpecPath, proxyUrl, writeAgentsMd, projectStore, projectAgentId };
+  return {
+    command,
+    subcommand,
+    repoPath,
+    storePath,
+    agentId,
+    dashboardUrl,
+    auditLimit,
+    json,
+    localEmbeddings,
+    activeSpecPath,
+    proxyUrl,
+    writeAgentsMd,
+    projectStore,
+    projectAgentId,
+    projectSlug,
+    dryRun,
+  };
 }
 
 function printUsage(): void {
@@ -103,6 +129,7 @@ Usage:
   rootrouter index <repo-path> [--store <store.json>] [--agent <id>]
   rootrouter init cursor [--store <store.json>] [--local-embeddings] [--active-spec <path>]
   rootrouter init codex [--store <store.json>] [--local-embeddings] [--active-spec <path>] [--write-agents-md] [--project-store] [--project-agent-id <id>]
+  rootrouter init hermes [--proxy-url <url>] [--project-slug <slug>] [--dry-run]
   rootrouter snapshot [--store <store.json>] [--dashboard <url>]
   rootrouter audit [--limit <n>] [--agent <id>] [--json]
   rootrouter doctor [--store <store.json>] [--proxy-url <url>] [--json]
@@ -154,7 +181,10 @@ async function runInit(
   activeSpecPath?: string,
   writeAgentsMd?: boolean,
   projectStore?: boolean,
-  projectAgentId?: string
+  projectAgentId?: string,
+  projectSlug?: string,
+  dryRun?: boolean,
+  proxyUrl?: string
 ): Promise<void> {
   const cwd = process.cwd();
   const paths = resolveInitPaths(cwd);
@@ -167,12 +197,57 @@ async function runInit(
     projectAgentId,
   };
 
+  if (subcommand === 'hermes') {
+    const result = initHermes({
+      proxyBaseUrl: proxyUrl,
+      projectSlug,
+      dryRun: dryRun === true,
+      setDefaultProvider: true,
+    });
+    console.error(`[rootrouter] ${result.message}`);
+    console.error(`Store (persona): ${result.storePath}`);
+    console.error(`Agent id header: x-rootrouter-agent-id: ${result.agentId}`);
+    console.error(`Project slug: ${result.projectSlug}`);
+    console.error('');
+    console.error('After project_switch, re-run: rootrouter init hermes');
+    console.error('Or: Agents/Hermes/scripts/sync-rootrouter-agent-id.sh');
+    console.error('Telegram: /new after provider change. Keep proxy LaunchAgent up.');
+    console.log(
+      JSON.stringify(
+        {
+          ok: true,
+          target: result.target,
+          storePath: result.storePath,
+          agentId: result.agentId,
+          projectSlug: result.projectSlug,
+          proxyBaseUrl: result.proxyBaseUrl,
+          dryRun: !!dryRun,
+        },
+        null,
+        2
+      )
+    );
+    return;
+  }
+
   if (subcommand === 'cursor') {
+    if (!initOptions.projectStore && !storePath) {
+      console.error(
+        '[rootrouter] Warning: init cursor without --project-store uses the global default store (demos only).'
+      );
+      console.error(
+        '  Motus / production: rootrouter init cursor --project-store [--project-agent-id <slug>]'
+      );
+      console.error('');
+    }
     const result = initCursor(cwd, paths, initOptions);
     console.error(`[rootrouter] ${result.message}`);
+    console.error(`Store: ${result.storePath}`);
+    console.error(`Default agentId: ${result.agentId}`);
     console.error('');
     console.error('Agent rule: .cursor/rules/rootrouter-mcp.mdc (cold vs warm path — skip on single-file fixes)');
     console.error('Handoff template: docs/templates/slice-handoff.md');
+    console.error('Storage policy: docs/insights/009-cursor-project-store-parity.md');
     console.error('');
     if (initOptions.localEmbeddings) {
       console.error('Embeddings: local MiniLM (recommended for monorepos). Default without flag is TF-IDF (zero-dep).');
@@ -187,7 +262,15 @@ async function runInit(
     console.error(proxyEnvSnippet(paths));
     console.log(
       JSON.stringify(
-        { ok: true, target: result.target, localEmbeddings: !!initOptions.localEmbeddings, proxySnippet: proxyEnvSnippet(paths) },
+        {
+          ok: true,
+          target: result.target,
+          storePath: result.storePath,
+          agentId: result.agentId,
+          projectStore: !!initOptions.projectStore,
+          localEmbeddings: !!initOptions.localEmbeddings,
+          proxySnippet: proxyEnvSnippet(paths),
+        },
         null,
         2
       )
@@ -224,7 +307,9 @@ async function runInit(
     return;
   }
 
-  console.error('Usage: rootrouter init cursor|codex [--store <store.json>] [--local-embeddings] [--active-spec <path>] [--write-agents-md] [--project-store] [--project-agent-id <id>]');
+  console.error(
+    'Usage: rootrouter init cursor|codex|hermes [--store <store.json>] [--local-embeddings] [--active-spec <path>] [--write-agents-md] [--project-store] [--project-agent-id <id>] [--project-slug <slug>] [--proxy-url <url>] [--dry-run]'
+  );
   process.exit(1);
 }
 
@@ -265,7 +350,24 @@ async function runSnapshot(storePath?: string, dashboardUrl?: string): Promise<v
 
 async function main(): Promise<void> {
   const parsed = parseArgs(process.argv);
-  const { command, subcommand, repoPath, storePath, agentId, dashboardUrl, auditLimit, json, localEmbeddings, activeSpecPath, proxyUrl, writeAgentsMd, projectStore, projectAgentId } = parsed;
+  const {
+    command,
+    subcommand,
+    repoPath,
+    storePath,
+    agentId,
+    dashboardUrl,
+    auditLimit,
+    json,
+    localEmbeddings,
+    activeSpecPath,
+    proxyUrl,
+    writeAgentsMd,
+    projectStore,
+    projectAgentId,
+    projectSlug,
+    dryRun,
+  } = parsed;
 
   if (command === '--help' || command === '-h' || !command) {
     printUsage();
@@ -278,7 +380,18 @@ async function main(): Promise<void> {
   }
 
   if (command === 'init') {
-    await runInit(subcommand, storePath, localEmbeddings, activeSpecPath, writeAgentsMd, projectStore, projectAgentId);
+    await runInit(
+      subcommand,
+      storePath,
+      localEmbeddings,
+      activeSpecPath,
+      writeAgentsMd,
+      projectStore,
+      projectAgentId,
+      projectSlug,
+      dryRun,
+      proxyUrl
+    );
     return;
   }
 

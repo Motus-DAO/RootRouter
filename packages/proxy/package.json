@@ -1,6 +1,6 @@
 {
   "name": "@rootrouter/proxy",
-  "version": "0.2.0-beta.0",
+  "version": "0.2.0-beta.1",
   "description": "Transparent OpenAI-compatible proxy that trims prompt context with RootRouter before forwarding upstream. Point any agent's base_url at it to cut tokens with zero code changes.",
   "type": "module",
   "main": "dist/server.js",

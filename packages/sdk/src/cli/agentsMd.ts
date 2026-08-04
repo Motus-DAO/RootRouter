@@ -13,7 +13,7 @@ export function projectSlug(repoPath: string): string {
 
 export function defaultProjectStorePath(
   repoPath: string,
-  runtime: 'codex' | 'proxy' = 'codex'
+  runtime: 'codex' | 'proxy' | 'cursor' = 'codex'
 ): string {
   return path.join(os.homedir(), '.rootrouter', projectSlug(repoPath), `${runtime}-store.json`);
 }

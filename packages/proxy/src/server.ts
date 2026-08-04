@@ -12,6 +12,11 @@ import { filterMessages, type ChatMessage } from './filter.js';
 import { getEngine, initEngine, resolveStorePath } from './engine.js';
 import { applyLightweightModelRouting } from './lightweightRouter.js';
 import { getProxyRoutingConfig, isModelRoutingEnabled } from './routingConfig.js';
+import {
+  hermesAutoProjectEnabled,
+  readHermesActiveProjectSlug,
+  resolveProxyAgentId,
+} from './hermesAgentId.js';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const UPSTREAM_ORIGIN = (process.env.ROOTROUTER_UPSTREAM_ORIGIN ?? 'https://openrouter.ai').replace(/\/$/, '');
@@ -87,6 +92,7 @@ async function handle(req: http.IncomingMessage, res: http.ServerResponse): Prom
     const engine = getEngine();
     const stats = engine.stats();
     const routingConfig = MODEL_ROUTING_ENABLED ? getProxyRoutingConfig(UPSTREAM_ORIGIN) : null;
+    const hermesAuto = hermesAutoProjectEnabled();
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(
       JSON.stringify({
@@ -98,6 +104,8 @@ async function handle(req: http.IncomingMessage, res: http.ServerResponse): Prom
         stateful: true,
         modelRouting: MODEL_ROUTING_ENABLED,
         modelCatalog: routingConfig?.modelCatalog ?? 'off',
+        hermesAutoProject: hermesAuto,
+        hermesActiveSlug: hermesAuto ? readHermesActiveProjectSlug() : null,
       })
     );
     return;
@@ -109,9 +117,17 @@ async function handle(req: http.IncomingMessage, res: http.ServerResponse): Prom
   let storeRecalledHeader = '0';
   let modelSelectedHeader = '';
   let tierHeader = '';
+  let agentIdSourceHeader = 'header';
 
   const disabled = (req.headers['x-rootrouter-disable'] ?? '').toString().toLowerCase() === 'true';
-  const agentId = (req.headers['x-rootrouter-agent-id'] ?? 'default').toString();
+  const lockAgentId =
+    (req.headers['x-rootrouter-agent-id-lock'] ?? '').toString().toLowerCase() === 'true';
+  const resolvedAgent = resolveProxyAgentId({
+    headerAgentId: (req.headers['x-rootrouter-agent-id'] ?? 'default').toString(),
+    lockHeader: lockAgentId,
+  });
+  const agentId = resolvedAgent.agentId;
+  agentIdSourceHeader = resolvedAgent.source;
   const recallFeedbackHeader = (req.headers['x-rootrouter-recall-feedback'] ?? '')
     .toString()
     .toLowerCase();
@@ -215,6 +231,8 @@ async function handle(req: http.IncomingMessage, res: http.ServerResponse): Prom
   const respHeaders = copyUpstreamResponseHeaders(upstream);
   respHeaders['x-rootrouter-tokens-saved'] = savedHeader;
   respHeaders['x-rootrouter-store-recalled'] = storeRecalledHeader;
+  respHeaders['x-rootrouter-agent-id'] = agentId;
+  respHeaders['x-rootrouter-agent-id-source'] = agentIdSourceHeader;
   if (modelSelectedHeader) {
     respHeaders['x-rootrouter-model-selected'] = modelSelectedHeader;
     respHeaders['x-rootrouter-tier'] = tierHeader;
@@ -243,7 +261,8 @@ async function main() {
     console.error(`[rootrouter-proxy] listening on http://localhost:${PORT} -> ${UPSTREAM_ORIGIN}`);
     console.error(
       `[rootrouter-proxy] store=${resolveStorePath()} contextBudget=${CONTEXT_BUDGET} ` +
-        `storeShare=${STORE_SHARE} modelRouting=${MODEL_ROUTING_ENABLED}`
+        `storeShare=${STORE_SHARE} modelRouting=${MODEL_ROUTING_ENABLED} ` +
+        `hermesAutoProject=${hermesAutoProjectEnabled()}`
     );
   });
 }

@@ -1,12 +1,19 @@
 import { createRequire as nodeCreateRequire } from 'module';
 import {
+  defaultProjectAgentId,
   defaultProjectStorePath,
   writeCodexAgentsMd,
   type WriteAgentsMdResult,
 } from './agentsMd';
+import { initHermes, type InitHermesOptions, type InitHermesResult } from './initHermes';
+import { defaultPersonaProxyStorePath, scopedProxyAgentId } from './runtimeStores';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+
+export { initHermes, type InitHermesOptions, type InitHermesResult };
+export { defaultPersonaProxyStorePath, scopedProxyAgentId };
+export { defaultProjectAgentId, defaultProjectStorePath };
 
 const nodeRequire = nodeCreateRequire(__filename);
 
@@ -62,16 +69,30 @@ export interface InitCursorOptions {
   activeSpecPath?: string;
   /** Write RootRouter sections to ~/.codex/AGENTS.md and ./AGENTS.md (codex init). */
   writeAgentsMd?: boolean;
-  /** Use ~/.rootrouter/<project>/codex-store.json instead of global default store. */
+  /**
+   * Use ~/.rootrouter/<project>/{cursor|codex}-store.json instead of global default store.
+   * Motus / production: always enable for Cursor (avoids multi-repo stews).
+   */
   projectStore?: boolean;
   /** agentId for project AGENTS.md and MCP retrieval scoping. */
   projectAgentId?: string;
 }
 
-export function buildMcpServerEnv(paths: InitPaths, options?: InitCursorOptions): Record<string, string> {
+export function resolveProjectAgentId(repoPath: string, options?: InitCursorOptions): string {
+  return options?.projectAgentId?.trim() || defaultProjectAgentId(repoPath);
+}
+
+export function buildMcpServerEnv(
+  paths: InitPaths,
+  options?: InitCursorOptions,
+  agentId?: string
+): Record<string, string> {
   const env: Record<string, string> = {
     ROOTROUTER_STORE_PATH: paths.storePath,
   };
+  if (agentId?.trim()) {
+    env.ROOTROUTER_DEFAULT_AGENT_ID = agentId.trim();
+  }
   if (options?.localEmbeddings) {
     env.EMBEDDING_PROVIDER = 'local';
     env.EMBEDDING_LOCAL_MODEL = 'minilm';
@@ -84,14 +105,27 @@ export function buildMcpServerEnv(paths: InitPaths, options?: InitCursorOptions)
   return env;
 }
 
-export function initCursor(cwd: string, paths: InitPaths, options?: InitCursorOptions): InitResult {
+export function initCursor(
+  cwd: string,
+  paths: InitPaths,
+  options?: InitCursorOptions
+): InitResult & { storePath: string; agentId: string } {
+  if (options?.projectStore) {
+    paths.storePath = defaultProjectStorePath(paths.repoPath, 'cursor');
+  }
+  fs.mkdirSync(path.dirname(paths.storePath), { recursive: true });
+  if (!fs.existsSync(paths.storePath)) {
+    fs.writeFileSync(paths.storePath, `${JSON.stringify({ items: [] }, null, 2)}\n`, 'utf8');
+  }
+
+  const agentId = resolveProjectAgentId(paths.repoPath, options);
   const cursorDir = path.join(cwd, '.cursor');
   const configPath = path.join(cursorDir, 'mcp.json');
 
   const entry = {
     command: paths.mcpLaunch.command,
     args: paths.mcpLaunch.args,
-    env: buildMcpServerEnv(paths, options),
+    env: buildMcpServerEnv(paths, options, agentId),
   };
 
   let config: { mcpServers: Record<string, unknown> } = { mcpServers: {} };
@@ -108,19 +142,33 @@ export function initCursor(cwd: string, paths: InitPaths, options?: InitCursorOp
   fs.mkdirSync(cursorDir, { recursive: true });
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
 
-  const ruleResult = writeCursorRootRouterRule(cwd);
+  const ruleResult = writeCursorRootRouterRule(cwd, {
+    storePath: paths.storePath,
+    agentId,
+  });
 
   return {
     target: configPath,
     created: true,
+    storePath: paths.storePath,
+    agentId,
     message:
       `Wrote Cursor MCP config at ${configPath}` +
+      (options?.projectStore ? ` (project store: ${paths.storePath})` : ' (global/default store — demos only)') +
       (ruleResult ? `; ${ruleResult}` : ''),
   };
 }
 
+export interface WriteCursorRuleOptions {
+  storePath?: string;
+  agentId?: string;
+}
+
 /** Install `.cursor/rules/rootrouter-mcp.mdc` so agents use MCP without manual prompting. */
-export function writeCursorRootRouterRule(cwd: string): string | null {
+export function writeCursorRootRouterRule(
+  cwd: string,
+  options?: WriteCursorRuleOptions
+): string | null {
   const rulesDir = path.join(cwd, '.cursor', 'rules');
   const rulePath = path.join(rulesDir, 'rootrouter-mcp.mdc');
   const templateCandidates = [
@@ -136,6 +184,12 @@ export function writeCursorRootRouterRule(cwd: string): string | null {
     }
   }
   if (!content) return null;
+
+  const agentId = options?.agentId?.trim() || 'repo';
+  const storePath = options?.storePath?.trim() || defaultStorePath();
+  content = content
+    .replaceAll('{{AGENT_ID}}', agentId)
+    .replaceAll('{{STORE_PATH}}', storePath);
 
   fs.mkdirSync(rulesDir, { recursive: true });
   fs.writeFileSync(rulePath, content, 'utf8');
@@ -178,9 +232,10 @@ export function initCodex(
   options?: InitCursorOptions
 ): InitResult & { agentsMd?: WriteAgentsMdResult } {
   if (options?.projectStore) {
-    paths.storePath = defaultProjectStorePath(paths.repoPath);
+    paths.storePath = defaultProjectStorePath(paths.repoPath, 'codex');
   }
   fs.mkdirSync(path.dirname(paths.storePath), { recursive: true });
+  const agentId = resolveProjectAgentId(paths.repoPath, options);
 
   // Project stores need project-scoped MCP configuration; otherwise every repo
   // would inherit whichever store was written to the global config most recently.
@@ -192,7 +247,7 @@ export function initCodex(
       ? '[]'
       : `[${paths.mcpLaunch.args.map((a) => formatTomlString(a)).join(', ')}]`;
 
-  const envLines = Object.entries(buildMcpServerEnv(paths, options)).map(
+  const envLines = Object.entries(buildMcpServerEnv(paths, options, agentId)).map(
     ([key, value]) => `${key} = ${formatTomlString(value)}`
   );
 
@@ -214,7 +269,7 @@ export function initCodex(
     agentsMd = writeCodexAgentsMd(cwd, {
       repoPath: paths.repoPath,
       storePath: paths.storePath,
-      agentId: options.projectAgentId,
+      agentId,
       activeSpecPath: options.activeSpecPath,
     });
   }
