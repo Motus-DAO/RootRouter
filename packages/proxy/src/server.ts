@@ -17,6 +17,7 @@ import {
   readHermesActiveProjectSlug,
   resolveProxyAgentId,
 } from './hermesAgentId.js';
+import { getContextMeterSnapshot, recordContextSample } from './contextMeter.js';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const UPSTREAM_ORIGIN = (process.env.ROOTROUTER_UPSTREAM_ORIGIN ?? 'https://openrouter.ai').replace(/\/$/, '');
@@ -111,6 +112,32 @@ async function handle(req: http.IncomingMessage, res: http.ServerResponse): Prom
     return;
   }
 
+  if (req.method === 'GET' && (url === '/context' || url.startsWith('/context?'))) {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(
+      JSON.stringify(
+        getContextMeterSnapshot({
+          contextBudget: CONTEXT_BUDGET,
+          minTokensToFilter: MIN_TOKENS_TO_FILTER,
+        })
+      )
+    );
+    return;
+  }
+
+  if (req.method === 'GET' && (url === '/v1/context' || url.startsWith('/v1/context?'))) {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(
+      JSON.stringify(
+        getContextMeterSnapshot({
+          contextBudget: CONTEXT_BUDGET,
+          minTokensToFilter: MIN_TOKENS_TO_FILTER,
+        })
+      )
+    );
+    return;
+  }
+
   const rawBody = await readBody(req);
   let outBody: Buffer = rawBody;
   let savedHeader = '0';
@@ -160,6 +187,17 @@ async function handle(req: http.IncomingMessage, res: http.ServerResponse): Prom
                 `dropped_store=[${payload.droppedStoreIds.join(',')}]`
             );
           },
+        });
+
+        recordContextSample({
+          agentId,
+          model: typeof parsed.model === 'string' ? parsed.model : undefined,
+          filtered: outcome.filtered,
+          tokensBefore: outcome.tokensBefore,
+          tokensAfter: outcome.tokensAfter,
+          tokensSaved: outcome.tokensSaved,
+          storeRecalled: outcome.storeRecalled ?? 0,
+          contextBudget,
         });
 
         if (outcome.filtered) {

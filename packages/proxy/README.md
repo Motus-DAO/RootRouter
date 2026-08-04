@@ -201,6 +201,17 @@ curl http://localhost:8787/healthz
 # {"ok":true,"upstream":"https://openrouter.ai","contextBudget":4000}
 ```
 
+## Context meter
+
+Process-local context health (resets on proxy restart):
+
+```bash
+curl http://localhost:8787/context
+# or /v1/context
+```
+
+Returns last request (`tokensBefore` / `tokensAfter` / `tokensSaved` / `budgetFill`), session totals, and per-`agentId` rollup. This is a **managed-context** gauge (trim delta + budget fill), not just provider burn.
+
 ## Caveats
 
 - Trimming is **stateful** by default: turns are recorded in `ROOTROUTER_STORE_PATH` and recalled across requests. Prior in-request turns are also filtered within the token budget.
