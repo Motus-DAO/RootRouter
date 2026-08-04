@@ -39,6 +39,12 @@ function resolveStorePath(): string {
   return path.join(os.homedir(), '.rootrouter', 'store.json');
 }
 
+/** Project agent scope from init cursor/codex; falls back to legacy "repo". */
+function resolveDefaultAgentId(): string {
+  const fromEnv = process.env.ROOTROUTER_DEFAULT_AGENT_ID?.trim();
+  return fromEnv || 'repo';
+}
+
 function buildEngine(): ContextEngine {
   const store = new FileContextStore({
     filePath: resolveStorePath(),
@@ -52,6 +58,7 @@ function buildEngine(): ContextEngine {
 }
 
 const engine = buildEngine();
+const defaultAgentId = resolveDefaultAgentId();
 
 function formatSelectionResponse(result: SelectionResult, extraHeader?: string) {
   const formatted = result.selected
@@ -93,7 +100,7 @@ function formatSelectionResponse(result: SelectionResult, extraHeader?: string) 
 
 const server = new McpServer({
   name: 'rootrouter',
-  version: '0.1.0',
+  version: '0.2.0-beta.1',
 });
 
 // ─── record_context ───
@@ -123,7 +130,7 @@ server.registerTool(
       id: it.id ?? randomUUID(),
       text: it.text,
       kind: it.kind,
-      agentId: it.agentId,
+      agentId: it.agentId ?? defaultAgentId,
       metadata: it.metadata as Record<string, unknown> | undefined,
       timestamp: Date.now(),
     }));
@@ -152,11 +159,11 @@ server.registerTool(
       '(imports + directory communities) and upserts chunks into the persistent store for select_context.',
     inputSchema: {
       path: z.string().describe('Absolute or relative path to the repository root'),
-      agentId: z.string().optional().describe('Agent id scope for indexed chunks (default repo)'),
+      agentId: z.string().optional().describe('Agent id scope for indexed chunks (default ROOTROUTER_DEFAULT_AGENT_ID or "repo")'),
     },
   },
   async ({ path: repoPath, agentId }) => {
-    const result = indexRepo({ rootPath: repoPath, agentId: agentId ?? 'repo' });
+    const result = indexRepo({ rootPath: repoPath, agentId: agentId ?? defaultAgentId });
     engine.record(result.items);
     await engine.save();
     const stats = engine.stats();
@@ -167,10 +174,10 @@ server.registerTool(
           text:
             `Indexed ${result.stats.chunksIndexed} chunks from ${result.stats.filesScanned} files ` +
             `(${result.stats.edgesCreated} edges, ${result.stats.communities} communities). ` +
-            `Store now holds ${stats.items} item(s).`,
+            `Store now holds ${stats.items} item(s). agentId=${agentId ?? defaultAgentId}`,
         },
       ],
-      structuredContent: { ...result.stats, storeItems: stats.items },
+      structuredContent: { ...result.stats, storeItems: stats.items, agentId: agentId ?? defaultAgentId },
     };
   }
 );
@@ -206,7 +213,7 @@ server.registerTool(
   async ({ query, tokenBudget, agentId, mmrLambda, baseline, pathPrefix, excludePaths }) => {
     const result = await engine.select(query, {
       tokenBudget: tokenBudget ?? 4000,
-      agentId,
+      agentId: agentId ?? defaultAgentId,
       mmrLambda,
       baseline: baseline as SelectionBaseline | undefined,
       pathPrefix,
@@ -270,7 +277,7 @@ server.registerTool(
 
     const result = await engine.select(hints.query, {
       tokenBudget: tokenBudget ?? 4000,
-      agentId,
+      agentId: agentId ?? defaultAgentId,
       pathPrefix: effectivePrefix,
       excludePaths,
       specPaths: hints.specPaths,

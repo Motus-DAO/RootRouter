@@ -22,3 +22,10 @@ deploy/dashboard.env
 # macOS
 .DS_Store
 **/.DS_Store
+
+# Feng Shui gravity (COO local workspace material — not product source)
+/inbox/
+/documents/
+/deliverables/
+/assets/
+/archive/

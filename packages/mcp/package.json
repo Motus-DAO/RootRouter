@@ -1,6 +1,6 @@
 {
   "name": "@rootrouter/mcp",
-  "version": "0.2.0-beta.0",
+  "version": "0.2.0-beta.1",
   "description": "Model Context Protocol server exposing RootRouter context selection — record context and select the minimal relevant slice within a token budget. Works with Codex, Cursor, OpenClaw, Hermes, and any MCP client.",
   "type": "module",
   "main": "dist/server.js",

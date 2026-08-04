@@ -30,9 +30,11 @@ Where each layer runs, what it does, and how to combine them without stepping on
 **Recommended setup**
 
 ```bash
-npx rootrouter@beta init cursor
+npx rootrouter@beta init cursor --project-store --project-agent-id <slug>
 # optional: --local-embeddings, --active-spec path/to/spec.md
 ```
+
+Motus policy: **per-repo Cursor store is mandatory**; global `~/.rootrouter/store.json` is demos only.
 
 Set `ROOTROUTER_ACTIVE_SPEC` in MCP env when working spec-driven slices.
 
@@ -98,13 +100,23 @@ The SDK is **not** installed per consumer repo by default. Only apps that import
 
 ### One store per repository
 
-Chunk IDs are **repo-qualified** (`repoNamespace` + relative path + line range). Sharing one `store.json` across multiple repos is still discouraged — stores grow large, `agentId` scoping is retrieval-only, and concurrent writers can corrupt JSON.
+Chunk IDs are **repo-qualified** (`repoNamespace` + relative path + line range). Sharing one `store.json` across multiple repos is **not production** — stores grow large, `agentId` scoping is retrieval-only, and concurrent writers can corrupt JSON.
 
 | Pattern | Path | When |
 |---------|------|------|
-| Global default | `~/.rootrouter/store.json` | Single-repo experiments |
-| Per-project (Codex) | `~/.rootrouter/<slug>/codex-store.json` | Multi-repo — **recommended** |
+| **Per-project (Cursor)** | `~/.rootrouter/<slug>/cursor-store.json` | **Motus / production — mandatory** |
+| **Per-project (Codex)** | `~/.rootrouter/<slug>/codex-store.json` | Multi-repo Codex — recommended |
+| Global default | `~/.rootrouter/store.json` | **Demos / smoke only** |
 | Dev override | `ROOTROUTER_STORE_PATH` env | CI, custom layouts |
+
+**Cursor init (production):**
+
+```bash
+rootrouter init cursor --project-store --project-agent-id <slug>
+# optional: --local-embeddings
+```
+
+This writes workspace `.cursor/mcp.json` with `ROOTROUTER_STORE_PATH` + `ROOTROUTER_DEFAULT_AGENT_ID`. Store **data** stays on the machine; the repo only commits the config pointer. See [insight 009](./insights/009-cursor-project-store-parity.md).
 
 ### Treat the store as disposable
 

@@ -2,9 +2,13 @@
   "mcpServers": {
     "rootrouter": {
       "command": "node",
-      "args": ["/Users/main/RootRouter/packages/mcp/dist/server.js"],
+      "args": [
+        "/Users/brahma101/Projects/Work/RootRouter/packages/mcp/dist/server.js"
+      ],
       "env": {
-        "ROOTROUTER_STORE_PATH": "/Users/main/RootRouter/.rootrouter/store.json"
+        "ROOTROUTER_STORE_PATH": "/Users/brahma101/.rootrouter/rootrouter/cursor-store.json",
+        "ROOTROUTER_DEFAULT_AGENT_ID": "rootrouter",
+        "EMBEDDING_PROVIDER": "tfidf"
       }
     }
   }

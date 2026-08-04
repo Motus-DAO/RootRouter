@@ -59,7 +59,8 @@ This produces `packages/mcp/dist/server.js` (an executable `rootrouter-mcp` bin)
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `ROOTROUTER_STORE_PATH` | `~/.rootrouter/store.json` | Where context + cumulative selection stats are persisted |
+| `ROOTROUTER_STORE_PATH` | `~/.rootrouter/store.json` | Where context + cumulative selection stats are persisted (Motus: per-project `…/<slug>/cursor-store.json`) |
+| `ROOTROUTER_DEFAULT_AGENT_ID` | `repo` | Default `agentId` for `index_repo` / `select_*` when omitted (set by `init cursor --project-store`) |
 | `ROOTROUTER_SELECTIONS_LOG_PATH` | `<store-dir>/selections.jsonl` | Append-only audit log (one JSON line per `select_context`) |
 | `ROOTROUTER_MAX_ITEMS` | unbounded | Cap stored items (oldest evicted) |
 | `ROOTROUTER_USE_CHAMBERS` | `false` | Enable chamber-based relevance boosting |
@@ -79,9 +80,9 @@ From any project directory:
 npx rootrouter@beta init codex    # appends ~/.codex/config.toml
 npx rootrouter@beta init codex --project-store --write-agents-md   # per-repo config/store + AGENTS.md
 npx rootrouter@beta init codex --project-store --write-agents-md --project-agent-id academy --local-embeddings
-npx rootrouter@beta init cursor   # writes .cursor/mcp.json + agent rule
-npx rootrouter@beta init cursor --local-embeddings   # + MiniLM for monorepos
-npx rootrouter@beta init cursor --active-spec docs/specs/slice-4.md
+npx rootrouter@beta init cursor --project-store   # Motus / production — per-repo store
+npx rootrouter@beta init cursor --project-store --project-agent-id my-app --local-embeddings
+npx rootrouter@beta init cursor --active-spec docs/specs/slice-4.md   # demos may omit --project-store (global store)
 npx rootrouter@beta index ./my-repo
 ```
 
@@ -152,32 +153,25 @@ Any client that supports stdio MCP servers can point its `command`/`args` at the
 
 ## Use in this repo (already wired)
 
-This monorepo ships a ready-to-use config at [`.cursor/mcp.json`](../../.cursor/mcp.json):
+This monorepo ships a ready-to-use config at [`.cursor/mcp.json`](../../.cursor/mcp.json) after:
 
-```json
-{
-  "mcpServers": {
-    "rootrouter": {
-      "command": "node",
-      "args": ["/Users/main/RootRouter/packages/mcp/dist/server.js"],
-      "env": {
-        "ROOTROUTER_STORE_PATH": "/Users/main/RootRouter/.rootrouter/store.json"
-      }
-    }
-  }
-}
+```bash
+npm run mcp:build
+rootrouter init cursor --project-store --project-agent-id rootrouter
 ```
 
 Steps:
 
 1. Build once: `npm run mcp:build` (from the repo root).
-2. Reload Cursor, or toggle the server in Settings -> MCP, so it picks up `.cursor/mcp.json`. You should see `rootrouter` with `index_repo`, `record_context`, `select_context`, `stats`, and `list_selections`.
-3. The local context store is written to `.rootrouter/store.json` (gitignored).
+2. Init with **project store** (Motus mandatory): command above.
+3. Reload Cursor MCP. Tools: `index_repo`, `record_context`, `select_context`, `select_for_spec`, `stats`, `list_selections`.
+4. Local context store: `~/.rootrouter/rootrouter/cursor-store.json` (gitignored machine cache).
 
 Notes:
 
-- The paths in `.cursor/mcp.json` are absolute (Cursor requires this). If you move or clone the repo elsewhere, update them.
-- Runs fully local (TF-IDF) with no API key. For stronger embeddings, add `EMBEDDING_API_KEY` (and optionally `EMBEDDING_API_URL` / `EMBEDDING_MODEL`) to the `env` block; set `ROOTROUTER_USE_CHAMBERS=true` to enable chamber boosting.
+- Paths in `.cursor/mcp.json` are absolute. Re-run `init cursor --project-store` after moving the clone or rebuilding MCP.
+- Global `~/.rootrouter/store.json` is demos only — see [insight 009](../../docs/insights/009-cursor-project-store-parity.md).
+- TF-IDF by default; `--local-embeddings` for MiniLM. Set `ROOTROUTER_USE_CHAMBERS=true` for chamber boosting.
 
 ## Typical agent loop
 

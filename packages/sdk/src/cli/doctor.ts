@@ -12,38 +12,72 @@ export interface DoctorCliOptions {
 
 interface DoctorReport {
   ok: boolean;
-  checks: Array<{ name: string; ok: boolean; detail: string }>;
+  checks: Array<{ name: string; ok: boolean; detail: string; warn?: boolean }>;
   recommendedNextStep: string;
+}
+
+function defaultGlobalStorePath(): string {
+  return path.join(os.homedir(), '.rootrouter', 'store.json');
 }
 
 function resolveStorePath(input?: string): string {
   if (input?.trim()) return path.resolve(input);
   if (process.env.ROOTROUTER_STORE_PATH?.trim()) return process.env.ROOTROUTER_STORE_PATH.trim();
-  return path.join(os.homedir(), '.rootrouter', 'store.json');
+  return defaultGlobalStorePath();
 }
 
-function readStoreStats(storePath: string): { exists: boolean; items: number } {
-  if (!fs.existsSync(storePath)) return { exists: false, items: 0 };
+function readStoreStats(storePath: string): {
+  exists: boolean;
+  items: number;
+  repoRoots: string[];
+  agentIds: string[];
+} {
+  if (!fs.existsSync(storePath)) {
+    return { exists: false, items: 0, repoRoots: [], agentIds: [] };
+  }
   try {
     const raw = fs.readFileSync(storePath, 'utf8');
-    if (!raw.trim()) return { exists: true, items: 0 };
-    const parsed = JSON.parse(raw) as { items?: unknown[] };
-    const items = Array.isArray(parsed.items) ? parsed.items.length : 0;
-    return { exists: true, items };
+    if (!raw.trim()) return { exists: true, items: 0, repoRoots: [], agentIds: [] };
+    const parsed = JSON.parse(raw) as {
+      items?: Array<{ agentId?: string; metadata?: { repoRoot?: string } }>;
+    };
+    const items = Array.isArray(parsed.items) ? parsed.items : [];
+    const roots = new Set<string>();
+    const agents = new Set<string>();
+    for (const item of items) {
+      const root = item.metadata?.repoRoot;
+      if (typeof root === 'string' && root.trim()) roots.add(root);
+      if (typeof item.agentId === 'string' && item.agentId.trim()) agents.add(item.agentId);
+    }
+    return {
+      exists: true,
+      items: items.length,
+      repoRoots: [...roots].sort(),
+      agentIds: [...agents].sort(),
+    };
   } catch {
-    return { exists: true, items: 0 };
+    return { exists: true, items: 0, repoRoots: [], agentIds: [] };
   }
 }
 
-function checkMcpConfig(cwd: string): { ok: boolean; detail: string } {
+function readCursorMcpStore(cwd: string): {
+  ok: boolean;
+  detail: string;
+  storePath?: string;
+  agentId?: string;
+  binOk?: boolean;
+} {
   const mcpPath = path.join(cwd, '.cursor', 'mcp.json');
   if (!fs.existsSync(mcpPath)) {
-    return { ok: false, detail: `Missing ${mcpPath}. Run: rootrouter init cursor` };
+    return { ok: false, detail: `Missing ${mcpPath}. Run: rootrouter init cursor --project-store` };
   }
 
   try {
     const parsed = JSON.parse(fs.readFileSync(mcpPath, 'utf8')) as {
-      mcpServers?: Record<string, { command?: string; args?: string[] }>;
+      mcpServers?: Record<
+        string,
+        { command?: string; args?: string[]; env?: Record<string, string> }
+      >;
     };
     const entry = parsed.mcpServers?.rootrouter;
     if (!entry) {
@@ -52,10 +86,21 @@ function checkMcpConfig(cwd: string): { ok: boolean; detail: string } {
     if (entry.command === 'node' && Array.isArray(entry.args) && entry.args[0]) {
       const bin = entry.args[0];
       if (!fs.existsSync(bin)) {
-        return { ok: false, detail: `MCP server path missing: ${bin}. Run npm run mcp:build` };
+        return {
+          ok: false,
+          detail: `MCP server path missing: ${bin}. Run npm run mcp:build`,
+          storePath: entry.env?.ROOTROUTER_STORE_PATH,
+          agentId: entry.env?.ROOTROUTER_DEFAULT_AGENT_ID,
+        };
       }
     }
-    return { ok: true, detail: 'rootrouter MCP entry present in .cursor/mcp.json' };
+    return {
+      ok: true,
+      detail: 'rootrouter MCP entry present in .cursor/mcp.json',
+      storePath: entry.env?.ROOTROUTER_STORE_PATH,
+      agentId: entry.env?.ROOTROUTER_DEFAULT_AGENT_ID,
+      binOk: true,
+    };
   } catch (err) {
     return {
       ok: false,
@@ -94,9 +139,19 @@ async function checkProxyHealth(proxyUrl?: string): Promise<{ ok: boolean; detai
   }
 }
 
+function isGlobalDefaultStore(storePath: string): boolean {
+  return path.resolve(storePath) === path.resolve(defaultGlobalStorePath());
+}
+
+function looksLikeProjectStore(storePath: string): boolean {
+  const normalized = path.resolve(storePath).replace(/\\/g, '/');
+  return /\/\.rootrouter\/[^/]+\/(cursor|codex|proxy)-store\.json$/.test(normalized);
+}
+
 export async function runDoctorCli(options: DoctorCliOptions = {}): Promise<number> {
   const cwd = options.cwd ?? process.cwd();
-  const storePath = resolveStorePath(options.storePath);
+  const mcp = readCursorMcpStore(cwd);
+  const storePath = resolveStorePath(options.storePath ?? mcp.storePath);
   const checks: DoctorReport['checks'] = [];
 
   const store = readStoreStats(storePath);
@@ -105,21 +160,78 @@ export async function runDoctorCli(options: DoctorCliOptions = {}): Promise<numb
     ok: store.exists,
     detail: store.exists
       ? `Store found: ${storePath} (${store.items} item(s))`
-      : `Store missing: ${storePath}. Run: rootrouter index ./repo`,
+      : `Store missing: ${storePath}. Run: rootrouter index ./repo (or MCP index_repo)`,
   });
+
+  const isolationOk = !store.exists || looksLikeProjectStore(storePath) || store.items === 0;
+  const usingGlobal = isGlobalDefaultStore(storePath);
+  if (usingGlobal) {
+    checks.push({
+      name: 'store_isolation',
+      ok: false,
+      warn: true,
+      detail:
+        `Store is the global default (${defaultGlobalStorePath()}). ` +
+        `Motus / production: re-run rootrouter init cursor --project-store ` +
+        `(see docs/insights/009-cursor-project-store-parity.md)`,
+    });
+  } else if (!looksLikeProjectStore(storePath) && store.exists) {
+    checks.push({
+      name: 'store_isolation',
+      ok: true,
+      warn: true,
+      detail: `Custom store path (ok): ${storePath}`,
+    });
+  } else {
+    checks.push({
+      name: 'store_isolation',
+      ok: isolationOk,
+      detail: looksLikeProjectStore(storePath)
+        ? `Per-project store path: ${storePath}`
+        : `Store path: ${storePath}`,
+    });
+  }
+
+  if (store.repoRoots.length > 1) {
+    checks.push({
+      name: 'store_namespaces',
+      ok: false,
+      detail:
+        `Store mixes ${store.repoRoots.length} repoRoot namespaces (stew risk): ` +
+        store.repoRoots.slice(0, 5).join(', ') +
+        (store.repoRoots.length > 5 ? ', …' : '') +
+        '. Reset/re-index with a per-project store.',
+    });
+  } else {
+    checks.push({
+      name: 'store_namespaces',
+      ok: true,
+      detail:
+        store.repoRoots.length === 1
+          ? `Single repoRoot in store: ${store.repoRoots[0]}`
+          : 'No repoRoot metadata yet (empty or non-repo items)',
+    });
+  }
 
   const audit = summarizeSelectionAudit();
   checks.push({
     name: 'audit',
-    ok: audit.totalEntries > 0,
+    ok: true,
+    warn: audit.totalEntries === 0,
     detail:
       audit.totalEntries > 0
         ? `Selection audit: ${audit.totalEntries} entries (${audit.logPath})`
         : `No selection audit entries yet (${audit.logPath})`,
   });
 
-  const mcp = checkMcpConfig(cwd);
-  checks.push({ name: 'mcp', ok: mcp.ok, detail: mcp.detail });
+  checks.push({
+    name: 'mcp',
+    ok: mcp.ok,
+    detail:
+      mcp.ok && mcp.agentId
+        ? `${mcp.detail}; ROOTROUTER_DEFAULT_AGENT_ID=${mcp.agentId}`
+        : mcp.detail,
+  });
 
   const embedding = embeddingDetail();
   checks.push({ name: 'embedding', ok: embedding.ok, detail: embedding.detail });
@@ -127,25 +239,45 @@ export async function runDoctorCli(options: DoctorCliOptions = {}): Promise<numb
   const proxy = await checkProxyHealth(options.proxyUrl);
   checks.push({ name: 'proxy', ok: proxy.ok, detail: proxy.detail });
 
-  const ok = checks.every((c) => c.ok);
-  const recommendedNextStep =
+  const blocking = checks.filter(
+    (c) =>
+      !c.ok &&
+      (c.name === 'store_isolation' ||
+        c.name === 'store_namespaces' ||
+        c.name === 'mcp' ||
+        c.name === 'embedding' ||
+        c.name === 'proxy' ||
+        c.name === 'store')
+  );
+  const exitOk = blocking.length === 0;
+
+  let recommendedNextStep =
     store.items === 0
-      ? 'Run: rootrouter index ./repo'
+      ? 'Run: rootrouter index ./repo (or MCP index_repo once per cold slice)'
       : audit.totalEntries === 0
         ? 'Run a cold slice flow: select_for_spec or select_context, then rootrouter audit'
         : 'Looks healthy. Continue with slice work and use stats/list_selections at handoff.';
 
-  const report: DoctorReport = { ok, checks, recommendedNextStep };
+  if (usingGlobal) {
+    recommendedNextStep =
+      'Re-init with project store: rootrouter init cursor --project-store --project-agent-id <slug>';
+  } else if (store.repoRoots.length > 1) {
+    recommendedNextStep =
+      'Delete or rotate the stewed store, then index_repo into a fresh per-project cursor-store.json';
+  }
+
+  const report: DoctorReport = { ok: exitOk, checks, recommendedNextStep };
 
   if (options.json) {
     console.log(JSON.stringify(report, null, 2));
   } else {
-    console.log(`RootRouter doctor: ${ok ? 'OK' : 'ISSUES FOUND'}`);
+    console.log(`RootRouter doctor: ${exitOk ? 'OK' : 'ISSUES FOUND'}`);
     for (const c of checks) {
-      console.log(`- [${c.ok ? 'ok' : 'x'}] ${c.name}: ${c.detail}`);
+      const mark = c.ok ? 'ok' : c.warn ? '!' : 'x';
+      console.log(`- [${mark}] ${c.name}: ${c.detail}`);
     }
     console.log(`\nRecommended next step: ${recommendedNextStep}`);
   }
 
-  return ok ? 0 : 1;
+  return exitOk ? 0 : 1;
 }

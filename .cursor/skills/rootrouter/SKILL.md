@@ -22,10 +22,18 @@ Monorepo layout: `packages/sdk`, `apps/dashboard`, `contracts/` (root).
 | Public API | `packages/sdk/src/index.ts` |
 | Config | `packages/sdk/src/config.ts`, `.env` (root or package) |
 | Build SDK | From root: `npm run build`; in package: `npm run build -w rootrouter` → `packages/sdk/dist/` |
+| Cursor MCP (Motus) | `rootrouter init cursor --project-store --project-agent-id rootrouter` → `~/.rootrouter/rootrouter/cursor-store.json` |
+| Doctor | `rootrouter doctor` — fails on global stew / multi-repoRoot store |
 | Demos | From root: `npm run demo:basic`, `demo:swarm`, `demo:benchmark` |
 | Dashboard | From root: `npm run dashboard` (Next.js, port 3000); build: `npm run dashboard:build` |
 | Topology snapshots | Set `DASHBOARD_URL=http://localhost:3000`, run a demo; snapshots POST to `/api/snapshots`, stored in Convex |
 | Telemetry contract | `contracts/RootRouterTelemetry.sol`; mainnet `0x91aB56AbB4577B2B61Eed9A727cCb0D39896f0Ab` |
+
+## Storage (production)
+
+- Store **data** is on the machine (`~/.rootrouter/<slug>/cursor-store.json`), not committed to git.
+- Workspace `.cursor/mcp.json` only **points** at that path + `ROOTROUTER_DEFAULT_AGENT_ID`.
+- Global `~/.rootrouter/store.json` = demos only. Policy: [docs/insights/009-cursor-project-store-parity.md](../../docs/insights/009-cursor-project-store-parity.md).
 
 ## Key concepts
 

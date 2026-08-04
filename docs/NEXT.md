@@ -210,6 +210,8 @@ Only RootRouter unifies all three under one `ContextEngine` store and one select
 
 - [x] `rootrouter init cursor` — `.cursor/mcp.json` + proxy env snippet.
 - [x] `rootrouter init codex` — `~/.codex/config.toml` fragment.
+- [x] `rootrouter init hermes` — `~/.hermes/config.yaml` → proxy + `x-rootrouter-agent-id: hermes-coo:<slug>` (persona store).
+- [ ] `rootrouter init openclaw` — same persona+project header pattern (`openclaw-shamy:<slug>`).
 
 ### 4.3 Dashboard
 
